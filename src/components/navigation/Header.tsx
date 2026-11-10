@@ -16,6 +16,7 @@ import {
   Save,
   Building2,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import type { NavTabId, BrandProfile } from "@/types";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ interface HeaderProps {
   activeTab: NavTabId;
   onTabChange: (tab: NavTabId) => void;
   onUpdateBrand: (updated: Partial<BrandProfile>) => void;
+  onLogout?: () => void;
 }
 
 // Exactly 5 clean navigation tabs — zero dropdowns
@@ -36,7 +38,13 @@ const NAV_TABS: { id: NavTabId; label: string; icon: React.ElementType }[] = [
   { id: "bidding", label: "Bidding", icon: Award },
 ];
 
-export function Header({ brand, activeTab, onTabChange, onUpdateBrand }: HeaderProps) {
+export function Header({
+  brand,
+  activeTab,
+  onTabChange,
+  onUpdateBrand,
+  onLogout,
+}: HeaderProps) {
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
 
   // Profile / Store form local state
@@ -315,6 +323,20 @@ export function Header({ brand, activeTab, onTabChange, onUpdateBrand }: HeaderP
                   </>
                 )}
               </button>
+
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileSheetOpen(false);
+                    onLogout();
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer mt-2"
+                >
+                  <LogOut className="size-4" />
+                  <span>Sign Out of Atelier</span>
+                </button>
+              )}
             </form>
 
             {/* Drawer Footer Links */}

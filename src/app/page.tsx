@@ -26,6 +26,8 @@ import {
   getDrops,
   getBiddingSlots,
   checkBackendConnection,
+  logoutBrand,
+  getStoredBrandToken,
 } from "@/lib/api";
 import { Header } from "@/components/navigation/Header";
 import { MobileBottomBar } from "@/components/navigation/MobileBottomBar";
@@ -34,6 +36,8 @@ import { CatalogView } from "@/components/catalog/CatalogView";
 import { AiVideoStudio } from "@/components/aivideo/AiVideoStudio";
 import { LaunchesView } from "@/components/launches/LaunchesView";
 import { BiddingView } from "@/components/bidding/BiddingView";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { LogIn } from "lucide-react";
 
 export default function BrandDashboardPage() {
   const [activeTab, setActiveTab] = useState<NavTabId>("dashboard");
@@ -43,6 +47,7 @@ export default function BrandDashboardPage() {
   const [launches, setLaunches] = useState<LaunchDrop[]>(defaultLaunches);
   const [biddingSlots, setBiddingSlots] = useState<Top10BidSlot[]>(defaultBiddingSlots);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
 
   // Sync state from Backend API on mount
   useEffect(() => {
@@ -124,6 +129,16 @@ export default function BrandDashboardPage() {
     setBrand((prev) => ({ ...prev, aiCredits: newCredits }));
   };
 
+  const handleLogout = () => {
+    logoutBrand();
+    setAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (loggedInBrand: BrandProfile) => {
+    setBrand(loggedInBrand);
+    setAuthModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-white relative">
       {/* Subtle ambient lighting matching ThreadFlank platform */}
@@ -139,11 +154,12 @@ export default function BrandDashboardPage() {
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
         onUpdateBrand={handleUpdateBrand}
+        onLogout={handleLogout}
       />
 
       {/* Main Workspace Body */}
       <main className="relative flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
-        {/* Subtle Connection Status Banner */}
+        {/* Subtle Connection Status & Switch Atelier Bar */}
         <div className="flex items-center justify-between mb-4 text-xs font-mono">
           <div className="flex items-center gap-2">
             <span
@@ -159,6 +175,14 @@ export default function BrandDashboardPage() {
                 : "Backend API: Standalone Mode (Run `npm run start:dev` in backend to sync live)"}
             </span>
           </div>
+
+          <button
+            onClick={() => setAuthModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.06] text-white/80 hover:text-white transition-all cursor-pointer text-[11px]"
+          >
+            <LogIn className="size-3 text-accent-bright" />
+            <span>Switch / Sign In</span>
+          </button>
         </div>
 
         {activeTab === "dashboard" && (
@@ -202,6 +226,14 @@ export default function BrandDashboardPage() {
       <MobileBottomBar
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
+      />
+
+      {/* Brand Atelier Sign-In / Switch Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        canDismiss={true}
       />
     </div>
   );
