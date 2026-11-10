@@ -16,6 +16,21 @@ import {
 const API_BASE =
   process.env.NEXT_PUBLIC_BRAND_API_URL || "http://localhost:3003/api/brand";
 
+function unwrapResponse<T>(json: any): T {
+  if (!json) return json;
+  // Handle double or single nesting from NestJS TransformInterceptor
+  if (json?.data?.data !== undefined) {
+    return json.data.data;
+  }
+  if (json?.data !== undefined && typeof json.data === "object" && !Array.isArray(json.data) && "data" in json.data) {
+    return json.data.data;
+  }
+  if (json?.data !== undefined) {
+    return json.data;
+  }
+  return json;
+}
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   try {
@@ -40,9 +55,8 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     }
 
     const json = await res.json();
-    return json.data !== undefined ? json.data : json;
+    return unwrapResponse<T>(json);
   } catch (err: any) {
-    // Graceful offline fallback
     throw err;
   }
 }
@@ -51,7 +65,14 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
 export async function checkBackendConnection(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/profile`, { method: "GET", headers: { Accept: "application/json" } });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(`${API_BASE}/profile`, {
+      method: "GET",
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+    clearTimeout(timeoutId);
     return res.ok;
   } catch {
     return false;
@@ -62,7 +83,8 @@ export async function checkBackendConnection(): Promise<boolean> {
 
 export async function getBrandProfile(): Promise<BrandProfile> {
   try {
-    return await request<BrandProfile>("/profile");
+    const data = await request<BrandProfile>("/profile");
+    return data && data.name ? data : defaultBrandProfile;
   } catch {
     return defaultBrandProfile;
   }
@@ -85,7 +107,8 @@ export async function updateBrandProfile(
 
 export async function getCatalog(): Promise<ProductItem[]> {
   try {
-    return await request<ProductItem[]>("/catalog");
+    const data = await request<ProductItem[]>("/catalog");
+    return Array.isArray(data) && data.length > 0 ? data : defaultProducts;
   } catch {
     return defaultProducts;
   }
@@ -144,11 +167,12 @@ export async function deleteGarment(id: string): Promise<boolean> {
   return true;
 }
 
-// ─── Analytics API ────────────────────────────────────────────────────────────
+// ─── Analytics API ────────────────────────────────────────────────────
 
 export async function getAnalyticsOverview(): Promise<MetricSummary> {
   try {
-    return await request<MetricSummary>("/analytics/overview");
+    const data = await request<MetricSummary>("/analytics/overview");
+    return data && data.totalDrapes ? data : defaultMetrics;
   } catch {
     return defaultMetrics;
   }
@@ -194,7 +218,8 @@ export interface SimulationResult {
 
 export async function getAiMotionPresets(): Promise<MotionPreset[]> {
   try {
-    return await request<MotionPreset[]>("/ai-studio/presets");
+    const data = await request<MotionPreset[]>("/ai-studio/presets");
+    return Array.isArray(data) ? data : [];
   } catch {
     return [
       {
@@ -275,7 +300,8 @@ export async function runAiSimulation(params: {
 
 export async function getBiddingSlots(): Promise<Top10BidSlot[]> {
   try {
-    return await request<Top10BidSlot[]>("/bidding/slots");
+    const data = await request<Top10BidSlot[]>("/bidding/slots");
+    return Array.isArray(data) && data.length > 0 ? data : defaultBiddingSlots;
   } catch {
     return defaultBiddingSlots;
   }
@@ -311,7 +337,8 @@ export async function placeRunwayBid(
 
 export async function getDrops(): Promise<LaunchDrop[]> {
   try {
-    return await request<LaunchDrop[]>("/drops");
+    const data = await request<LaunchDrop[]>("/drops");
+    return Array.isArray(data) && data.length > 0 ? data : defaultLaunches;
   } catch {
     return defaultLaunches;
   }

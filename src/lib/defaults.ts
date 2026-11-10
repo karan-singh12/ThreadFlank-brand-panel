@@ -227,3 +227,4 @@ export const defaultBiddingSlots: Top10BidSlot[] = [
     projectedAudience: { views: 1400000, drapes: 210000 },
   },
 ];
+
