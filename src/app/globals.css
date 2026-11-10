@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --app-header: 4.5rem;
+  --app-tabbar: 4.5rem;
+}
+
+html {
+  background: #010214;
+  color: #ffffff;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #010214;
+  color: #ffffff;
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Form input dark default overrides - NEVER allow white form inputs */
+input, textarea, select {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(127, 98, 246, 0.8) !important;
+  outline: none !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #8d90a5 !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #010214;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Chrome text gradients */
+.chrome {
+  background-image: linear-gradient(180deg, #ffffff 25%, #85849a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.chrome-soft {
+  background-image: linear-gradient(180deg, #ffffff 0%, #b9b8c9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Threadflank UI Design System Classes */
+.btn-primary {
+  background-image: linear-gradient(180deg, #3f20be 0%, #190c4d 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(127, 98, 246, 0.45);
+  color: #ded6ff;
+}
+
+.btn-primary:hover {
+  background-image: linear-gradient(180deg, #4926dc 0%, #211066 100%);
+  color: #ffffff;
+}
+
+.btn-light {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(228, 227, 240, 0.9) 100%);
+  box-shadow: 0 4px 20px -6px rgba(200, 176, 247, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  color: #0b0b1e;
+}
+
+.card-violet {
+  background-image:
+    linear-gradient(90deg, transparent 8%, rgba(196, 177, 250, 0.45) 50%, transparent 92%),
+    linear-gradient(180deg, rgba(102, 69, 235, 0.12) 0%, rgba(14, 15, 27, 0.65) 100%);
+  background-size: 100% 1px, 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
+}
+
+.card-violet-strong {
+  background-image:
+    linear-gradient(90deg, transparent 8%, rgba(196, 177, 250, 0.55) 50%, transparent 92%),
+    linear-gradient(180deg, rgba(102, 69, 235, 0.18) 0%, rgba(21, 22, 38, 0.7) 100%);
+  background-size: 100% 1px, 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
+}
+
+.glass-panel {
+  background-color: rgba(9, 11, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Selected chip, tab or segment: off-white like the light button, with dark text */
+.chip-on {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(228, 227, 240, 0.92) 100%);
+  box-shadow: 0 6px 20px -10px rgba(200, 176, 247, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  color: #0b0b1e;
+}
+
+.glass-pill {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(171, 171, 171, 0.04) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 220ms ease-out both;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise-in {
+  animation: rise-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
