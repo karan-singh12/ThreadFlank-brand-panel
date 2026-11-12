@@ -14,6 +14,8 @@ import type {
   ProductItem,
   SimulationInput,
   SimulationResult,
+  TeamMember,
+  WidgetInfo,
 } from "./types";
 
 const b = ENDPOINTS.brand;
@@ -82,6 +84,32 @@ export const brandApi = {
 
   async generateContent(token: string, input: ContentRequest) {
     return (await apiRequest<ContentResult>(b.aiStudio.content, { method: "POST", token, body: input, timeoutMs: 90_000 })).data;
+  },
+
+  async widget(token: string, signal?: AbortSignal) {
+    return (await apiRequest<WidgetInfo>(b.widget, { token, signal })).data;
+  },
+  async setWidgetDomains(token: string, domains: string[]) {
+    return (await apiRequest<WidgetInfo>(`${b.widget}/domains`, { method: "PUT", token, body: { domains } })).data;
+  },
+  async rotateWidgetKey(token: string) {
+    return (await apiRequest<WidgetInfo>(`${b.widget}/rotate-key`, { method: "POST", token })).data;
+  },
+
+  async team(token: string, signal?: AbortSignal) {
+    return (await apiRequest<TeamMember[]>(b.team, { token, signal })).data;
+  },
+  async inviteMember(token: string, input: { name: string; email: string }) {
+    return (await apiRequest<TeamMember>(`${b.team}/invite`, { method: "POST", token, body: input })).data;
+  },
+  async resendInvite(token: string, id: string) {
+    await apiRequest(`${b.team}/${id}/resend`, { method: "POST", token });
+  },
+  async setMemberActive(token: string, id: string, isActive: boolean) {
+    return (await apiRequest<{ id: string; isActive: boolean }>(`${b.team}/${id}`, { method: "PATCH", token, body: { isActive } })).data;
+  },
+  async changePassword(token: string, currentPassword: string, newPassword: string) {
+    await apiRequest(ENDPOINTS.brand.auth.changePassword, { method: "POST", token, body: { currentPassword, newPassword } });
   },
 
   async uploadBase64(token: string, base64: string, filename?: string) {

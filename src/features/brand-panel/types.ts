@@ -177,3 +177,22 @@ export type ContentResult = {
   remainingCredits: number;
   createdAt: string;
 };
+
+export type WidgetInfo = {
+  key: string;
+  live: boolean;
+  status: "ACTIVE" | "INACTIVE" | "PENDING";
+  domains: string[];
+  last30Days: { sessions: number; succeeded: number };
+  topOrigins: { origin: string; sessions: number }[];
+};
+
+export type TeamMember = {
+  id: string;
+  name: string;
+  email: string;
+  role: "OWNER" | "MANAGER";
+  isActive: boolean;
+  pending: boolean;
+  lastLoginAt: string | null;
+};

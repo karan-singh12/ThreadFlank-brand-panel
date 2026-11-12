@@ -1,19 +1,49 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { ChevronRight, Globe, LogOut, MapPin, Save } from "lucide-react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { ChevronRight, Globe, ImagePlus, LogOut, MapPin, Save } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { ActionButton, Field, Notice, Segmented, TextArea } from "@/components/ui/Controls";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useBrandPanel } from "./BrandPanelProvider";
 import { BrandAvatar } from "./BrandAvatar";
+import { brandApi } from "./api";
 import { errorMessage } from "./useResource";
+import { SecurityPanel } from "./settings/SecurityPanel";
+import { TeamPanel } from "./settings/TeamPanel";
+import { WidgetPanel } from "./settings/WidgetPanel";
+import { cn } from "@/lib/utils";
 
 /** Profile and store settings (the old panel's right-hand drawer), in the app's shared Modal. */
+const TABS = [
+  { id: "profile", label: "Profile" },
+  { id: "widget", label: "Try-on widget" },
+  { id: "team", label: "Team" },
+  { id: "security", label: "Password" },
+] as const;
+
 export function BrandSettings({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("profile");
   return (
-    <Modal open={open} onClose={onClose} title="Store settings">
-      <SettingsForm onClose={onClose} />
+    <Modal open={open} onClose={onClose} title="Store settings" className="sm:max-w-[640px]">
+      <div role="tablist" aria-label="Settings" className="no-scrollbar -mt-1 mb-5 flex gap-1.5 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={cn("h-9 shrink-0 rounded-full px-4 text-sm transition-colors", tab === t.id ? "chip-on font-medium" : "glass-pill text-subtle hover:text-white")}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "profile" && <SettingsForm onClose={onClose} />}
+      {tab === "widget" && <WidgetPanel />}
+      {tab === "team" && <TeamPanel />}
+      {tab === "security" && <SecurityPanel onDone={onClose} />}
     </Modal>
   );
 }
@@ -29,7 +59,10 @@ function isHttpUrl(value: string) {
 
 function SettingsForm({ onClose }: { onClose: () => void }) {
   const { brand, updateBrand } = useBrandPanel();
-  const { logout } = useAuth();
+  const { logout, token } = useAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [logo, setLogo] = useState(brand?.logo ?? "");
+  const [uploading, setUploading] = useState(false);
   // Mounted only while open, so these start from the brand as it is right now.
   const [name, setName] = useState(brand?.name ?? "");
   const [story, setStory] = useState(brand?.story ?? "");
@@ -43,6 +76,29 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
   if (!brand) return null;
   const hasRank = brand.currentRank > 0 && brand.totalBrands > 0;
 
+  const onLogo = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !token) return;
+    if (!file.type.startsWith("image/")) return setError("Choose an image file (PNG, JPG or WebP).");
+    if (file.size > 5 * 1024 * 1024) return setError("That logo is over 5 MB. Choose a smaller one.");
+    setUploading(true);
+    setError("");
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(file);
+      });
+      setLogo((await brandApi.uploadBase64(token, dataUrl, file.name)).url);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return setError("Enter your brand name.");
@@ -54,6 +110,7 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
     try {
       await updateBrand({
         name: name.trim(),
+        ...(logo !== (brand.logo ?? "") ? { logo } : {}),
         story,
         banner: banner.trim(),
         websiteUrl: websiteUrl.trim(),
@@ -71,11 +128,16 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
   return (
     <form onSubmit={save} noValidate className="space-y-5">
       <div className="flex items-center gap-3">
-        <BrandAvatar name={brand.name} src={brand.logo} className="size-11" />
-        <div className="min-w-0">
+        <BrandAvatar name={brand.name} src={logo} className="size-14" />
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-white">{brand.name}</p>
-          <p className="text-xs text-muted">Profile and store settings</p>
+          <p className="text-xs text-muted">Shoppers see this logo on your brand page.</p>
         </div>
+        <input ref={fileRef} type="file" accept="image/*" onChange={onLogo} className="hidden" />
+        <ActionButton variant="ghost" loading={uploading} onClick={() => fileRef.current?.click()} className="h-9 px-3 text-xs">
+          {!uploading && <ImagePlus className="size-4" aria-hidden />}
+          {logo ? "Change logo" : "Upload logo"}
+        </ActionButton>
       </div>
 
       {error && <Notice tone="error">{error}</Notice>}
