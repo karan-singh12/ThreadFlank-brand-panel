@@ -10,7 +10,9 @@ import { cn } from "@/lib/utils";
 import { BrandPageHeader } from "../BrandPageHeader";
 import { useReadyPanel } from "../BrandPanelProvider";
 import type { ProductItem } from "../types";
-import { ALL } from "./constants";
+import { ALL, CATEGORIES, OCCASIONS } from "./constants";
+import { brandApi } from "../api";
+import { useResource } from "../useResource";
 import { GarmentForm } from "./GarmentForm";
 import { ProductCard } from "./ProductCard";
 import { errorMessage } from "../useResource";
@@ -18,6 +20,10 @@ import { Notice } from "@/components/ui/Controls";
 
 export function CatalogView() {
   const { products, brand, addProduct, updateProduct, deleteProduct } = useReadyPanel();
+  // Admins manage these lists; the built-in ones only cover the moment before any exist.
+  const taxonomy = useResource(brandApi.taxonomy);
+  const categoryChoices = taxonomy.data?.categories.length ? taxonomy.data.categories : CATEGORIES;
+  const occasionChoices = taxonomy.data?.occasions.length ? taxonomy.data.occasions : OCCASIONS;
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(ALL);
   const [adding, setAdding] = useState(false);
@@ -140,10 +146,10 @@ export function CatalogView() {
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add a garment">
-        <GarmentForm defaultBuyUrl={brand.websiteUrl ?? ""} onAdd={addProduct} onDone={() => setAdding(false)} />
+        <GarmentForm categories={categoryChoices} occasions={occasionChoices} defaultBuyUrl={brand.websiteUrl ?? ""} onAdd={addProduct} onDone={() => setAdding(false)} />
       </Modal>
       <Modal open={Boolean(editing)} onClose={() => setEditing(null)} title="Edit garment">
-        {editing && <GarmentForm key={editing.id} defaultBuyUrl={brand.websiteUrl ?? ""} garment={editing} onSave={updateProduct} onDone={() => setEditing(null)} />}
+        {editing && <GarmentForm key={editing.id} categories={categoryChoices} occasions={occasionChoices} defaultBuyUrl={brand.websiteUrl ?? ""} garment={editing} onSave={updateProduct} onDone={() => setEditing(null)} />}
       </Modal>
       <Modal open={Boolean(deleting)} onClose={() => setDeleting(null)} title="Delete garment?">
         <div className="space-y-4">

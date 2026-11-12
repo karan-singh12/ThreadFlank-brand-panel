@@ -60,6 +60,13 @@ export type ProductItem = {
   buyUrl: string;
   featured: boolean;
   newDrop: boolean;
+  /** The caption: what a post used to say. */
+  description?: string;
+  /** DRAFT is hidden from shoppers. */
+  status: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "FAILED";
+  sharesCount: number;
+  likesCount: number;
+  commentsCount: number;
 };
 
 /** Body of POST /brand/catalog (CreateGarmentDto). */
@@ -78,6 +85,8 @@ export type CreateGarmentInput = {
   buyUrl: string;
   featured: boolean;
   newDrop: boolean;
+  description?: string;
+  status?: "DRAFT" | "PUBLISHED";
 };
 
 export type LaunchDrop = {
@@ -196,3 +205,6 @@ export type TeamMember = {
   pending: boolean;
   lastLoginAt: string | null;
 };
+
+/** The category and occasion choices admins manage; a brand picks from these. */
+export type Taxonomy = { categories: string[]; occasions: string[] };

@@ -162,6 +162,7 @@ export const ENDPOINTS = {
     },
     profile: "/brand/profile",
     widget: "/brand/widget",
+    taxonomy: "/brand/taxonomy",
     team: "/brand/team",
     catalog: "/brand/catalog",
     garment: (id: string) => `/brand/catalog/${id}`,

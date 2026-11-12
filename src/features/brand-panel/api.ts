@@ -14,6 +14,7 @@ import type {
   ProductItem,
   SimulationInput,
   SimulationResult,
+  Taxonomy,
   TeamMember,
   WidgetInfo,
 } from "./types";
@@ -86,6 +87,9 @@ export const brandApi = {
     return (await apiRequest<ContentResult>(b.aiStudio.content, { method: "POST", token, body: input, timeoutMs: 90_000 })).data;
   },
 
+  async taxonomy(token: string, signal?: AbortSignal) {
+    return (await apiRequest<Taxonomy>(b.taxonomy, { token, signal })).data;
+  },
   async widget(token: string, signal?: AbortSignal) {
     return (await apiRequest<WidgetInfo>(b.widget, { token, signal })).data;
   },
