@@ -11,16 +11,34 @@ import { BrandPageHeader } from "../BrandPageHeader";
 import { useReadyPanel } from "../BrandPanelProvider";
 import type { ProductItem } from "../types";
 import { ALL } from "./constants";
-import { EditBuyUrlForm } from "./EditBuyUrlForm";
 import { GarmentForm } from "./GarmentForm";
 import { ProductCard } from "./ProductCard";
+import { errorMessage } from "../useResource";
+import { Notice } from "@/components/ui/Controls";
 
 export function CatalogView() {
-  const { products, brand, addProduct, updateBuyUrl } = useReadyPanel();
+  const { products, brand, addProduct, updateProduct, deleteProduct } = useReadyPanel();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(ALL);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ProductItem | null>(null);
+  const [deleting, setDeleting] = useState<ProductItem | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await deleteProduct(deleting.id);
+      setDeleting(null);
+    } catch (e) {
+      setDeleteError(errorMessage(e));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   const categories = useMemo(() => [ALL, ...Array.from(new Set(products.map((p) => p.category).filter(Boolean)))], [products]);
 
@@ -114,7 +132,7 @@ export function CatalogView() {
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 xl:grid-cols-4">
               {shown.map((p) => (
-                <ProductCard key={p.id} product={p} onEditLink={() => setEditing(p)} />
+                <ProductCard key={p.id} product={p} onEdit={() => setEditing(p)} onDelete={() => { setDeleteError(""); setDeleting(p); }} />
               ))}
             </div>
           )}
@@ -124,8 +142,24 @@ export function CatalogView() {
       <Modal open={adding} onClose={() => setAdding(false)} title="Add a garment">
         <GarmentForm defaultBuyUrl={brand.websiteUrl ?? ""} onAdd={addProduct} onDone={() => setAdding(false)} />
       </Modal>
-      <Modal open={Boolean(editing)} onClose={() => setEditing(null)} title="Edit buy link">
-        {editing && <EditBuyUrlForm key={editing.id} product={editing} onSave={updateBuyUrl} onDone={() => setEditing(null)} />}
+      <Modal open={Boolean(editing)} onClose={() => setEditing(null)} title="Edit garment">
+        {editing && <GarmentForm key={editing.id} defaultBuyUrl={brand.websiteUrl ?? ""} garment={editing} onSave={updateProduct} onDone={() => setEditing(null)} />}
+      </Modal>
+      <Modal open={Boolean(deleting)} onClose={() => setDeleting(null)} title="Delete garment?">
+        <div className="space-y-4">
+          <p className="text-sm text-muted">
+            <span className="text-white">{deleting?.title}</span> will be removed from your catalog. This can&apos;t be undone.
+          </p>
+          {deleteError && <Notice tone="error">{deleteError}</Notice>}
+          <div className="flex justify-end gap-2">
+            <ActionButton variant="ghost" onClick={() => setDeleting(null)}>
+              Cancel
+            </ActionButton>
+            <ActionButton variant="danger" loading={deleteBusy} onClick={confirmDelete}>
+              Delete
+            </ActionButton>
+          </div>
+        </div>
       </Modal>
     </div>
   );

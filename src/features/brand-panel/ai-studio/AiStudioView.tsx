@@ -47,6 +47,7 @@ export function AiStudioView() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [videoFailed, setVideoFailed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const activeProduct = products.find((p) => p.id === productId) ?? (custom ? undefined : products[0]);
@@ -75,6 +76,8 @@ export function AiStudioView() {
     if (!token || !activePreset) return;
     setGenerating(true);
     setError("");
+    setResult(null);
+    setVideoFailed(false);
     try {
       // An uploaded photo is stored first so the render request carries a link, not megabytes of image data.
       const customImageUrl = custom ? (await brandApi.uploadBase64(token, custom.dataUrl, custom.name)).url : undefined;
@@ -176,12 +179,12 @@ export function AiStudioView() {
         <div className="flex justify-center lg:col-span-5">
           <div
             className={cn(
-              "relative w-full max-w-[340px] overflow-hidden rounded-2xl bg-black/60 shadow-2xl ring-1 ring-white/10 transition-[aspect-ratio] duration-300",
+              "relative w-full max-w-[260px] overflow-hidden rounded-2xl bg-black/60 shadow-2xl ring-1 ring-white/10 transition-[aspect-ratio] duration-300",
               ratio === "9:16" ? "aspect-[9/16]" : ratio === "1:1" ? "aspect-square" : "aspect-video"
             )}
           >
-            {result?.previewVideoUrl ? (
-              <video src={result.previewVideoUrl} poster={activeImage || undefined} controls autoPlay loop playsInline className="size-full object-cover" />
+            {result?.previewVideoUrl && !videoFailed ? (
+              <video src={result.previewVideoUrl} poster={activeImage || undefined} controls autoPlay loop playsInline onError={() => setVideoFailed(true)} className="size-full object-cover" />
             ) : activeImage ? (
               <Photo src={activeImage} alt="Selected garment" className={cn("transition-all duration-700", generating && "scale-105 brightness-75 blur-[2px]")} />
             ) : (
@@ -266,7 +269,8 @@ export function AiStudioView() {
             {generating ? "Rendering…" : `Render motion video (${COST} credits)`}
           </ActionButton>
 
-          {result && (
+          {videoFailed && <Notice tone="error">The rendered video could not be played. Please try again later.</Notice>}
+          {result && canAfford && !videoFailed && (
             <p className="text-xs text-muted">
               Done · {result.presetUsed} · {result.creditsDeducted} credits used · {result.remainingCredits} left
             </p>

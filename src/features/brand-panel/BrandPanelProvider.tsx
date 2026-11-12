@@ -15,6 +15,8 @@ type PanelValue = {
   updateBrand: (updates: BrandProfileUpdate) => Promise<void>;
   addProduct: (garment: CreateGarmentInput) => Promise<ProductItem>;
   updateBuyUrl: (id: string, buyUrl: string) => Promise<void>;
+  updateProduct: (id: string, patch: Partial<CreateGarmentInput>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   setCredits: (credits: number) => void;
 };
 
@@ -61,6 +63,22 @@ export function BrandPanelProvider({ children }: { children: ReactNode }) {
     [need, setCatalog]
   );
 
+  const updateProduct = useCallback(
+    async (id: string, patch: Partial<CreateGarmentInput>) => {
+      const updated = await brandApi.updateGarment(need(), id, patch);
+      setCatalog((list) => (list ?? []).map((p) => (p.id === id ? updated : p)));
+    },
+    [need, setCatalog]
+  );
+
+  const deleteProduct = useCallback(
+    async (id: string) => {
+      await brandApi.deleteGarment(need(), id);
+      setCatalog((list) => (list ?? []).filter((p) => p.id !== id));
+    },
+    [need, setCatalog]
+  );
+
   const setCredits = useCallback((aiCredits: number) => setBrand((b) => (b ? { ...b, aiCredits } : b)), [setBrand]);
 
   const reload = useCallback(() => {
@@ -80,9 +98,11 @@ export function BrandPanelProvider({ children }: { children: ReactNode }) {
       updateBrand,
       addProduct,
       updateBuyUrl,
+      updateProduct,
+      deleteProduct,
       setCredits,
     }),
-    [status, profile.error, catalog.error, profile.data, catalog.data, reload, updateBrand, addProduct, updateBuyUrl, setCredits]
+    [status, profile.error, catalog.error, profile.data, catalog.data, reload, updateBrand, addProduct, updateBuyUrl, updateProduct, deleteProduct, setCredits]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

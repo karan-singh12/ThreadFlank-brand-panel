@@ -47,6 +47,7 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     if (!name.trim()) return setError("Enter your brand name.");
     if (!isHttpUrl(websiteUrl.trim())) return setError("Enter your website as a full link starting with https://");
+    if (store === "flagship" && !address.trim()) return setError("Add your flagship store address, or switch to Online only.");
     if (banner.trim() && !isHttpUrl(banner.trim())) return setError("The banner image must be a full link starting with https://");
     setSaving(true);
     setError("");
