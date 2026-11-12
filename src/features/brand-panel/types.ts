@@ -107,7 +107,11 @@ export type BidSlot = {
   category: string;
   period: string;
   title?: string;
+  /** Highest bid so far; 0 when nobody has bid yet. */
   currentHighestBid: number;
+  /** The least a new bid can be: the starting price, or one rupee above the top bid. */
+  minimumBid?: number;
+  endsAt?: string;
   yourCurrentBid?: number;
   status: "winning" | "outbid" | "open";
   impressionsEstimate?: string;

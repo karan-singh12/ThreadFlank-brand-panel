@@ -8,18 +8,22 @@ import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { BrandPageHeader } from "../BrandPageHeader";
+import { useReadyPanel } from "../BrandPanelProvider";
 import { cn, formatRupee } from "@/lib/utils";
 import { brandApi } from "../api";
 import type { BidSlot } from "../types";
 import { errorMessage, useResource } from "../useResource";
 
 const loadSlots = brandApi.slots;
-/** The backend rejects bids under this amount. */
+/** Fallback if the server does not say what the least bid is. */
 const MIN_BID = 1000;
+const nextMin = (s: BidSlot) => s.minimumBid ?? Math.max(MIN_BID, s.currentHighestBid + 1);
 const QUICK_ADD = [2000, 5000, 10000];
 
 export function BiddingView() {
   const slots = useResource(loadSlots);
+  const { brand } = useReadyPanel();
+  const approved = brand.status === "ACTIVE";
   const [selected, setSelected] = useState<BidSlot | null>(null);
   const [notice, setNotice] = useState("");
   const list = slots.data ?? [];
@@ -33,7 +37,7 @@ export function BiddingView() {
       <BrandPageHeader
         eyebrow="Bidding"
         title="Runway spotlight"
-        blurb={`Bid for featured placements on Discover${remaining != null ? `. Active cycle, ${remaining}h remaining.` : "."}`}
+        blurb={`Bid for featured placements on Discover. The highest bid when the auction ends wins the slot, and our team will contact you to settle payment${remaining != null ? `. ${remaining}h remaining.` : "."}`}
         actions={
           slots.status === "ready" && (
             <p className="glass-pill flex h-11 items-center gap-2 rounded-full px-5 text-sm text-white">
@@ -44,6 +48,7 @@ export function BiddingView() {
         }
       />
 
+      {!approved && <Notice tone="info">Your brand is still being reviewed. You can look at the auctions now and bid once you are approved.</Notice>}
       {notice && <Notice tone="success">{notice}</Notice>}
 
       {slots.status === "loading" ? (
@@ -55,7 +60,7 @@ export function BiddingView() {
       ) : slots.status === "error" ? (
         <ErrorState message={slots.error} onRetry={slots.reload} className="py-16" />
       ) : list.length === 0 ? (
-        <EmptyState icon={Award} title="No open slots right now" description="Runway spotlight auctions will appear here when a cycle opens." className="py-16" />
+        <EmptyState icon={Award} title="No auction is open right now" description="Runway spotlight auctions appear here when Threadflank opens a new round. Check back soon." className="py-16" />
       ) : (
         <div className="card-violet overflow-hidden rounded-(--radius-panel)">
           <div className="hidden grid-cols-12 gap-4 border-b border-white/[0.06] px-6 py-3.5 text-[11px] uppercase tracking-wider text-muted md:grid">
@@ -85,8 +90,8 @@ export function BiddingView() {
 
                 <div className="flex justify-between text-xs md:col-span-2 md:flex-col md:justify-center">
                   <span className="text-muted md:hidden">Highest bid</span>
-                  <span className="font-medium tabular-nums text-white">{formatRupee(slot.currentHighestBid)}</span>
-                  <span className="hidden text-[10px] text-muted md:block">Current leader</span>
+                  <span className="font-medium tabular-nums text-white">{slot.currentHighestBid > 0 ? formatRupee(slot.currentHighestBid) : "No bids yet"}</span>
+                  <span className="hidden text-[10px] text-muted md:block">{slot.currentHighestBid > 0 ? "Current leader" : `Starts at ${formatRupee(nextMin(slot))}`}</span>
                 </div>
 
                 <div className="flex items-center justify-between gap-3 md:col-span-3 md:justify-end">
@@ -106,6 +111,8 @@ export function BiddingView() {
                   <ActionButton
                     variant={slot.status === "winning" ? "ghost" : "primary"}
                     className="h-9 px-4"
+                    disabled={!approved}
+                    title={approved ? undefined : "Available once your brand is approved"}
                     onClick={() => {
                       setNotice("");
                       setSelected(slot);
@@ -140,7 +147,7 @@ export function BiddingView() {
 
 function BidForm({ slot, onPlaced, onCancel }: { slot: BidSlot; onPlaced: (slot: BidSlot, message: string) => void; onCancel: () => void }) {
   const { token } = useAuth();
-  const [amount, setAmount] = useState(String(slot.currentHighestBid + 2000));
+  const [amount, setAmount] = useState(String(slot.currentHighestBid > 0 ? slot.currentHighestBid + 2000 : nextMin(slot)));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -148,8 +155,10 @@ function BidForm({ slot, onPlaced, onCancel }: { slot: BidSlot; onPlaced: (slot:
     e.preventDefault();
     if (!token) return;
     const value = Number(amount);
-    if (!Number.isFinite(value) || value < MIN_BID) return setError(`The minimum bid is ${formatRupee(MIN_BID)}.`);
-    if (value <= slot.currentHighestBid) return setError(`Your bid must be higher than the current top bid of ${formatRupee(slot.currentHighestBid)}.`);
+    const least = nextMin(slot);
+    if (!Number.isFinite(value) || value < least) {
+      return setError(slot.currentHighestBid > 0 ? `Your bid must be higher than the current top bid of ${formatRupee(slot.currentHighestBid)}.` : `The starting bid is ${formatRupee(least)}.`);
+    }
     setBusy(true);
     setError("");
     try {
@@ -167,7 +176,15 @@ function BidForm({ slot, onPlaced, onCancel }: { slot: BidSlot; onPlaced: (slot:
       <div className="-mt-2">
         <p className="text-sm text-white">{slot.category}</p>
         <p className="mt-1 text-xs text-muted">
-          Highest bid right now: <span className="font-medium tabular-nums text-white">{formatRupee(slot.currentHighestBid)}</span>
+          {slot.currentHighestBid > 0 ? (
+            <>
+              Highest bid right now: <span className="font-medium tabular-nums text-white">{formatRupee(slot.currentHighestBid)}</span>
+            </>
+          ) : (
+            <>
+              No bids yet. Starting bid: <span className="font-medium tabular-nums text-white">{formatRupee(nextMin(slot))}</span>
+            </>
+          )}
         </p>
       </div>
 
@@ -182,7 +199,7 @@ function BidForm({ slot, onPlaced, onCancel }: { slot: BidSlot; onPlaced: (slot:
             type="number"
             inputMode="numeric"
             autoFocus
-            min={slot.currentHighestBid + 1}
+            min={nextMin(slot)}
             value={amount}
             onChange={(e) => {
               setAmount(e.target.value);
@@ -199,7 +216,7 @@ function BidForm({ slot, onPlaced, onCancel }: { slot: BidSlot; onPlaced: (slot:
           <button
             key={inc}
             type="button"
-            onClick={() => setAmount(String((Number(amount) || slot.currentHighestBid) + inc))}
+            onClick={() => setAmount(String((Number(amount) || nextMin(slot) - 1) + inc))}
             className={cn("h-8 rounded-full border border-white/12 px-3 text-xs text-subtle transition-colors hover:border-white/25 hover:text-white")}
           >
             +{formatRupee(inc)}
