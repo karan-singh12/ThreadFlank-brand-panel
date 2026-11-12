@@ -4,6 +4,8 @@ import type {
   BidSlot,
   BrandProfile,
   BrandProfileUpdate,
+  ContentRequest,
+  ContentResult,
   CreateDropInput,
   CreateGarmentInput,
   LaunchDrop,
@@ -76,6 +78,10 @@ export const brandApi = {
   },
   async simulate(token: string, input: SimulationInput) {
     return (await apiRequest<SimulationResult>(b.aiStudio.simulate, { method: "POST", token, body: input, timeoutMs: 120_000 })).data;
+  },
+
+  async generateContent(token: string, input: ContentRequest) {
+    return (await apiRequest<ContentResult>(b.aiStudio.content, { method: "POST", token, body: input, timeoutMs: 90_000 })).data;
   },
 
   async uploadBase64(token: string, base64: string, filename?: string) {

@@ -19,7 +19,7 @@ All five sections live in the `(brand)` route group, behind `RequireAuth`, and s
 |---|---|---|
 | Dashboard | `/dashboard` | Analytics overview: impressions, try-ons, clicks to your store |
 | Catalog | `/catalog` | Add, edit and delete garments; import from a product link; edit the buy URL |
-| AI Studio | `/ai-studio` | Pick a motion preset (e.g. Red Carpet Glow) and simulate a runway video for a garment |
+| AI Studio | `/ai-studio` | **Write copy** (live): product descriptions, Instagram captions, launch announcements, email blurbs and SEO text in English, Hindi or Hinglish, written from the real catalog; 2 credits, charged only on success. **Motion video**: UI ready, rendering not connected yet (no charge) |
 | Drops | `/drops` | Schedule launch drops with a banner, date and waitlist count |
 | Bidding | `/bidding` | Bid on Top-10 runway slots by category; see winning/outbid status |
 
@@ -76,7 +76,7 @@ src/
 | Profile | `GET`/`PATCH /brand/profile` |
 | Catalog | `GET`/`POST /brand/catalog`, `GET`/`PATCH`/`DELETE /brand/catalog/:id` |
 | Analytics | `GET /brand/analytics/overview`, `POST /brand/analytics/track-click` |
-| AI Studio | `GET /brand/ai-studio/presets`, `POST /brand/ai-studio/simulate` |
+| AI Studio | `GET /brand/ai-studio/presets`, `POST /brand/ai-studio/simulate`, `POST /brand/ai-studio/content` |
 | Drops | `GET`/`POST /brand/drops` |
 | Bidding | `GET /brand/bidding/slots`, `POST /brand/bidding/slots/:rank/bid` |
 | Upload | `POST /brand/upload/{base64,file}` |

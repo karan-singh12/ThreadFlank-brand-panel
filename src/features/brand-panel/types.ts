@@ -148,3 +148,28 @@ export type SimulationResult = {
   remainingCredits: number;
   createdAt: string;
 };
+
+export type ContentType = "product_description" | "instagram_caption" | "launch_announcement" | "email_blurb" | "seo_meta";
+export type ContentTone = "luxe" | "playful" | "minimal" | "festive" | "bold";
+export type ContentLanguage = "english" | "hindi" | "hinglish";
+export type ContentLength = "short" | "medium" | "long";
+
+export type ContentRequest = {
+  contentType: ContentType;
+  garmentId?: string;
+  tone: ContentTone;
+  language: ContentLanguage;
+  length: ContentLength;
+  keywords: string[];
+  notes?: string;
+  variants?: number;
+};
+
+export type ContentResult = {
+  contentType: ContentType;
+  garmentId: string | null;
+  variants: { id: string; text: string }[];
+  creditsDeducted: number;
+  remainingCredits: number;
+  createdAt: string;
+};

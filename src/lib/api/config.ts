@@ -165,7 +165,7 @@ export const ENDPOINTS = {
     analytics: { overview: "/brand/analytics/overview", trackClick: "/brand/analytics/track-click" },
     drops: "/brand/drops",
     bidding: { slots: "/brand/bidding/slots", bid: (rank: number) => `/brand/bidding/slots/${rank}/bid` },
-    aiStudio: { presets: "/brand/ai-studio/presets", simulate: "/brand/ai-studio/simulate" },
+    aiStudio: { presets: "/brand/ai-studio/presets", simulate: "/brand/ai-studio/simulate", content: "/brand/ai-studio/content" },
     upload: "/brand/upload/base64",
   },
   studio: {

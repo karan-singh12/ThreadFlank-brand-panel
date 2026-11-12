@@ -13,6 +13,7 @@ import { BrandPageHeader } from "../BrandPageHeader";
 import { useReadyPanel } from "../BrandPanelProvider";
 import type { SimulationResult } from "../types";
 import { errorMessage, useResource } from "../useResource";
+import { ContentStudio } from "./ContentStudio";
 
 /** Credits one render costs (fixed by the backend). */
 const COST = 15;
@@ -34,7 +35,7 @@ const readAsDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-export function AiStudioView() {
+function VideoStudio() {
   const { token } = useAuth();
   const { brand, products, setCredits } = useReadyPanel();
   const presets = useResource(loadPresets);
@@ -111,6 +112,7 @@ export function AiStudioView() {
         }
       />
 
+      <Notice tone="info">Video rendering is still being connected. For now a render will not go through, and you will not be charged.</Notice>
       {error && <Notice tone="error">{error}</Notice>}
       {!canAfford && <Notice tone="info">You need at least {COST} AI credits to render a video.</Notice>}
 
@@ -277,6 +279,54 @@ export function AiStudioView() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const TABS = [
+  { id: "content", label: "Write copy" },
+  { id: "video", label: "Motion video" },
+] as const;
+
+/** AI Studio: written content (live) and motion video (being connected). */
+export function AiStudioView() {
+  const { brand } = useReadyPanel();
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("content");
+
+  return (
+    <div className="space-y-6">
+      <div role="tablist" aria-label="AI Studio" className="glass-pill inline-flex rounded-full p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={cn("h-9 rounded-full px-5 text-sm transition-colors", tab === t.id ? "chip-on" : "text-subtle hover:text-white")}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "content" ? (
+        <div className="space-y-6">
+          <BrandPageHeader
+            eyebrow="AI Studio"
+            title="Write with AI"
+            blurb="Product descriptions, captions, launch announcements, emails and SEO copy in your brand's voice. Written from your real catalog details only."
+            actions={
+              <p className="glass-pill flex h-11 items-center gap-2 rounded-full px-5 text-sm text-white tabular-nums">
+                2 credits per write · <span className="font-medium">{brand.aiCredits} available</span>
+              </p>
+            }
+          />
+          <ContentStudio />
+        </div>
+      ) : (
+        <VideoStudio />
+      )}
     </div>
   );
 }
