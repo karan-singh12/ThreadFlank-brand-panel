@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Pencil, Shirt } from "lucide-react";
+import { ExternalLink, Pencil, Shirt, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Photo } from "@/components/ui/Photo";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -18,7 +18,7 @@ const hostOf = (url: string) => {
 };
 
 /** One garment: photo first, then price, the buy-redirect and its numbers. */
-export function ProductCard({ product, onEditLink }: { product: ProductItem; onEditLink: () => void }) {
+export function ProductCard({ product, onEdit, onDelete }: { product: ProductItem; onEdit: () => void; onDelete: () => void }) {
   const { token } = useAuth();
   const image = product.images?.[0];
   const host = hostOf(product.buyUrl);
@@ -79,11 +79,19 @@ export function ProductCard({ product, onEditLink }: { product: ProductItem; onE
           )}
           <button
             type="button"
-            onClick={onEditLink}
-            aria-label={`Edit buy link for ${product.title}`}
+            onClick={onEdit}
+            aria-label={`Edit ${product.title}`}
             className="glass-pill flex size-10 shrink-0 items-center justify-center rounded-full text-subtle transition-[filter] hover:text-white hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright"
           >
             <Pencil className="size-3.5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={`Delete ${product.title}`}
+            className="glass-pill flex size-10 shrink-0 items-center justify-center rounded-full text-subtle transition-[filter] hover:text-white hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
           </button>
         </div>
       </div>

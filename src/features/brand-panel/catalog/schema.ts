@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-const optionalUrl = z.string().trim().url("Enter a full link starting with https://").or(z.literal(""));
+const optionalUrl = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || /^https:\/\/\S+$/i.test(v) && URL.canParse(v), "Enter a full link starting with https://");
 
 /** Form values stay strings (that's what inputs give us); they're converted when the garment is built. */
 export const garmentSchema = z.object({

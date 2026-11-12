@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ActionButton, Label, Notice } from "@/components/ui/Controls";
 import { errorMessage } from "../useResource";
-import type { CreateGarmentInput } from "../types";
+import type { CreateGarmentInput, ProductItem } from "../types";
 import { CATEGORIES, OCCASIONS } from "./constants";
 import { garmentSchema, type GarmentValues } from "./schema";
 import { cn } from "@/lib/utils";
@@ -29,8 +29,21 @@ function Row({ label, hint, error, children }: { label: string; hint?: string; e
 }
 
 /** Only what the brand enters is saved; unknown numbers stay zero rather than invented. */
-export function GarmentForm({ defaultBuyUrl, onAdd, onDone }: { defaultBuyUrl: string; onAdd: (g: CreateGarmentInput) => Promise<unknown>; onDone: () => void }) {
-  const [occasions, setOccasions] = useState<string[]>([]);
+export function GarmentForm({
+  defaultBuyUrl,
+  garment,
+  onAdd,
+  onSave,
+  onDone,
+}: {
+  defaultBuyUrl: string;
+  /** When set, the form edits this garment instead of adding a new one. */
+  garment?: ProductItem;
+  onAdd?: (g: CreateGarmentInput) => Promise<unknown>;
+  onSave?: (id: string, patch: Partial<CreateGarmentInput>) => Promise<unknown>;
+  onDone: () => void;
+}) {
+  const [occasions, setOccasions] = useState<string[]>(garment?.occasions ?? []);
   const [serverError, setServerError] = useState("");
   const {
     register,
@@ -38,7 +51,16 @@ export function GarmentForm({ defaultBuyUrl, onAdd, onDone }: { defaultBuyUrl: s
     formState: { errors, isSubmitting },
   } = useForm<GarmentValues>({
     resolver: zodResolver(garmentSchema),
-    defaultValues: { title: "", price: "", category: CATEGORIES[0], stock: "", imageUrl: "", buyUrl: "" },
+    defaultValues: garment
+      ? {
+          title: garment.title,
+          price: String(garment.price),
+          category: garment.category || CATEGORIES[0],
+          stock: String(garment.stock),
+          imageUrl: garment.images?.[0] ?? "",
+          buyUrl: garment.buyUrl,
+        }
+      : { title: "", price: "", category: CATEGORIES[0], stock: "", imageUrl: "", buyUrl: "" },
   });
 
   const toggle = (o: string) => setOccasions((list) => (list.includes(o) ? list.filter((x) => x !== o) : [...list, o]));
@@ -46,7 +68,21 @@ export function GarmentForm({ defaultBuyUrl, onAdd, onDone }: { defaultBuyUrl: s
   const submit = handleSubmit(async (v) => {
     setServerError("");
     try {
-      await onAdd({
+      if (garment && onSave) {
+        await onSave(garment.id, {
+          title: v.title.trim(),
+          price: Number(v.price),
+          images: v.imageUrl ? [v.imageUrl] : [],
+          category: v.category,
+          occasions,
+          stock: v.stock === "" ? 0 : Number(v.stock),
+          isDrapeReady: Boolean(v.imageUrl),
+          buyUrl: v.buyUrl || defaultBuyUrl,
+        });
+        onDone();
+        return;
+      }
+      await onAdd!({
         title: v.title.trim(),
         sku: newSku(),
         price: Number(v.price),
@@ -79,7 +115,7 @@ export function GarmentForm({ defaultBuyUrl, onAdd, onDone }: { defaultBuyUrl: s
         <Row label="Price (₹)" error={errors.price?.message}>
           <input type="number" inputMode="numeric" min={0} aria-invalid={!!errors.price} className={input} {...register("price")} />
         </Row>
-        <Row label="In stock" hint="Optional" error={errors.stock?.message}>
+        <Row label="In stock" hint="Leave empty for 0 (shows Out of stock)" error={errors.stock?.message}>
           <input type="number" inputMode="numeric" min={0} aria-invalid={!!errors.stock} className={input} {...register("stock")} />
         </Row>
       </div>
@@ -114,7 +150,7 @@ export function GarmentForm({ defaultBuyUrl, onAdd, onDone }: { defaultBuyUrl: s
         </div>
       </div>
 
-      <Row label="Garment image link" hint="A clear front-facing photo. Needed for try-on." error={errors.imageUrl?.message}>
+      <Row label="Garment image link" hint="A clear front-facing photo (https). Garments without one are saved as Not ready and can't be tried on." error={errors.imageUrl?.message}>
         <input type="url" placeholder="https://…" aria-invalid={!!errors.imageUrl} className={input} {...register("imageUrl")} />
       </Row>
 
@@ -127,7 +163,7 @@ export function GarmentForm({ defaultBuyUrl, onAdd, onDone }: { defaultBuyUrl: s
           Cancel
         </ActionButton>
         <ActionButton type="submit" loading={isSubmitting}>
-          Add garment
+          {garment ? "Save changes" : "Add garment"}
         </ActionButton>
       </div>
     </form>

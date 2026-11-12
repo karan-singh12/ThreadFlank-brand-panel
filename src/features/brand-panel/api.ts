@@ -31,6 +31,12 @@ export const brandApi = {
   async createGarment(token: string, garment: CreateGarmentInput) {
     return (await apiRequest<ProductItem>(b.catalog, { method: "POST", token, body: garment })).data;
   },
+  async updateGarment(token: string, id: string, patch: Partial<CreateGarmentInput>) {
+    return (await apiRequest<ProductItem>(b.garment(id), { method: "PATCH", token, body: patch })).data;
+  },
+  async deleteGarment(token: string, id: string) {
+    await apiRequest(b.garment(id), { method: "DELETE", token });
+  },
   async updateBuyUrl(token: string, id: string, buyUrl: string) {
     return (await apiRequest<ProductItem>(b.garment(id), { method: "PATCH", token, body: { buyUrl } })).data;
   },
@@ -48,6 +54,13 @@ export const brandApi = {
   },
   async createDrop(token: string, drop: CreateDropInput) {
     return (await apiRequest<LaunchDrop>(b.drops, { method: "POST", token, body: drop })).data;
+  },
+
+  async updateDrop(token: string, id: string, patch: Partial<CreateDropInput>) {
+    return (await apiRequest<LaunchDrop>(`${b.drops}/${id}`, { method: "PATCH", token, body: patch })).data;
+  },
+  async deleteDrop(token: string, id: string) {
+    await apiRequest(`${b.drops}/${id}`, { method: "DELETE", token });
   },
 
   async slots(token: string, signal?: AbortSignal) {
