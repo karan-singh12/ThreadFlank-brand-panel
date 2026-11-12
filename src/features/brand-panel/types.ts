@@ -60,6 +60,13 @@ export type ProductItem = {
   buyUrl: string;
   featured: boolean;
   newDrop: boolean;
+  /** The caption: what a post used to say. */
+  description?: string;
+  /** DRAFT is hidden from shoppers. */
+  status: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "FAILED";
+  sharesCount: number;
+  likesCount: number;
+  commentsCount: number;
 };
 
 /** Body of POST /brand/catalog (CreateGarmentDto). */
@@ -78,6 +85,8 @@ export type CreateGarmentInput = {
   buyUrl: string;
   featured: boolean;
   newDrop: boolean;
+  description?: string;
+  status?: "DRAFT" | "PUBLISHED";
 };
 
 export type LaunchDrop = {
@@ -107,7 +116,11 @@ export type BidSlot = {
   category: string;
   period: string;
   title?: string;
+  /** Highest bid so far; 0 when nobody has bid yet. */
   currentHighestBid: number;
+  /** The least a new bid can be: the starting price, or one rupee above the top bid. */
+  minimumBid?: number;
+  endsAt?: string;
   yourCurrentBid?: number;
   status: "winning" | "outbid" | "open";
   impressionsEstimate?: string;
@@ -148,3 +161,50 @@ export type SimulationResult = {
   remainingCredits: number;
   createdAt: string;
 };
+
+export type ContentType = "product_description" | "instagram_caption" | "launch_announcement" | "email_blurb" | "seo_meta";
+export type ContentTone = "luxe" | "playful" | "minimal" | "festive" | "bold";
+export type ContentLanguage = "english" | "hindi" | "hinglish";
+export type ContentLength = "short" | "medium" | "long";
+
+export type ContentRequest = {
+  contentType: ContentType;
+  garmentId?: string;
+  tone: ContentTone;
+  language: ContentLanguage;
+  length: ContentLength;
+  keywords: string[];
+  notes?: string;
+  variants?: number;
+};
+
+export type ContentResult = {
+  contentType: ContentType;
+  garmentId: string | null;
+  variants: { id: string; text: string }[];
+  creditsDeducted: number;
+  remainingCredits: number;
+  createdAt: string;
+};
+
+export type WidgetInfo = {
+  key: string;
+  live: boolean;
+  status: "ACTIVE" | "INACTIVE" | "PENDING";
+  domains: string[];
+  last30Days: { sessions: number; succeeded: number };
+  topOrigins: { origin: string; sessions: number }[];
+};
+
+export type TeamMember = {
+  id: string;
+  name: string;
+  email: string;
+  role: "OWNER" | "MANAGER";
+  isActive: boolean;
+  pending: boolean;
+  lastLoginAt: string | null;
+};
+
+/** The category and occasion choices admins manage; a brand picks from these. */
+export type Taxonomy = { categories: string[]; occasions: string[] };

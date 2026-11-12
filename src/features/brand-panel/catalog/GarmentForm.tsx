@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ActionButton, Label, Notice } from "@/components/ui/Controls";
+import { ActionButton, Label, Notice, Segmented } from "@/components/ui/Controls";
 import { errorMessage } from "../useResource";
 import type { CreateGarmentInput, ProductItem } from "../types";
-import { CATEGORIES, OCCASIONS } from "./constants";
 import { garmentSchema, type GarmentValues } from "./schema";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +31,16 @@ function Row({ label, hint, error, children }: { label: string; hint?: string; e
 export function GarmentForm({
   defaultBuyUrl,
   garment,
+  categories,
+  occasions: occasionOptions,
   onAdd,
   onSave,
   onDone,
 }: {
   defaultBuyUrl: string;
+  /** The choices admins manage. A piece that already has a category outside the list keeps it as an extra option. */
+  categories: readonly string[];
+  occasions: readonly string[];
   /** When set, the form edits this garment instead of adding a new one. */
   garment?: ProductItem;
   onAdd?: (g: CreateGarmentInput) => Promise<unknown>;
@@ -44,10 +48,13 @@ export function GarmentForm({
   onDone: () => void;
 }) {
   const [occasions, setOccasions] = useState<string[]>(garment?.occasions ?? []);
+  const categoryOptions = garment?.category && !categories.includes(garment.category) ? [garment.category, ...categories] : categories;
   const [serverError, setServerError] = useState("");
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<GarmentValues>({
     resolver: zodResolver(garmentSchema),
@@ -55,14 +62,19 @@ export function GarmentForm({
       ? {
           title: garment.title,
           price: String(garment.price),
-          category: garment.category || CATEGORIES[0],
+          category: garment.category || categoryOptions[0] || "",
           stock: String(garment.stock),
           imageUrl: garment.images?.[0] ?? "",
           buyUrl: garment.buyUrl,
+          description: garment.description ?? "",
+          status: garment.status === "DRAFT" ? "DRAFT" : "PUBLISHED",
+          featured: Boolean(garment.featured),
         }
-      : { title: "", price: "", category: CATEGORIES[0], stock: "", imageUrl: "", buyUrl: "" },
+      : { title: "", price: "", category: categoryOptions[0] ?? "", stock: "", imageUrl: "", buyUrl: "", description: "", status: "PUBLISHED", featured: false },
   });
 
+  const status = useWatch({ control, name: "status" });
+  const featured = useWatch({ control, name: "featured" });
   const toggle = (o: string) => setOccasions((list) => (list.includes(o) ? list.filter((x) => x !== o) : [...list, o]));
 
   const submit = handleSubmit(async (v) => {
@@ -77,7 +89,11 @@ export function GarmentForm({
           occasions,
           stock: v.stock === "" ? 0 : Number(v.stock),
           isDrapeReady: Boolean(v.imageUrl),
-          buyUrl: v.buyUrl || defaultBuyUrl,
+          description: v.description.trim(),
+          status: v.status,
+          featured: v.featured,
+          // A product with no store link yet stays that way until the brand adds one.
+          ...(v.buyUrl || defaultBuyUrl ? { buyUrl: v.buyUrl || defaultBuyUrl } : {}),
         });
         onDone();
         return;
@@ -94,8 +110,10 @@ export function GarmentForm({
         stock: v.stock === "" ? 0 : Number(v.stock),
         isDrapeReady: Boolean(v.imageUrl),
         drapeScore: 0,
+        description: v.description.trim() || undefined,
+        status: v.status,
         buyUrl: v.buyUrl || defaultBuyUrl,
-        featured: false,
+        featured: v.featured,
         newDrop: true,
       });
       onDone();
@@ -122,7 +140,7 @@ export function GarmentForm({
 
       <Row label="Category" error={errors.category?.message}>
         <select className={cn(input, "appearance-none [&>option]:bg-[#0b0b1e]")} {...register("category")}>
-          {CATEGORIES.map((c) => (
+          {categoryOptions.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
@@ -130,10 +148,40 @@ export function GarmentForm({
         </select>
       </Row>
 
+      <Row label="Description" hint="What shoppers read about this piece. Optional." error={errors.description?.message}>
+        <textarea rows={3} maxLength={2000} placeholder="e.g. Hand-woven silk with a zari border, made for festive evenings." aria-invalid={!!errors.description} className={cn(input, "h-24 resize-none py-3")} {...register("description")} />
+      </Row>
+
+      <div className="flex flex-col gap-2">
+        <Label>Visible to shoppers</Label>
+        <Segmented
+          label="Visibility"
+          value={status}
+          onChange={(v) => setValue("status", v, { shouldDirty: true })}
+          options={[
+            { id: "PUBLISHED", label: "Live" },
+            { id: "DRAFT", label: "Draft (hidden)" },
+          ]}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Showcase</Label>
+        <button
+          type="button"
+          aria-pressed={featured}
+          onClick={() => setValue("featured", !featured, { shouldDirty: true })}
+          className={cn("flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors", featured ? "border-transparent chip-on" : "border-white/12 text-subtle hover:border-white/25 hover:text-white")}
+        >
+          <span>Feature on my store page</span>
+          <span className="text-xs opacity-80">{featured ? "Featured" : "Up to 8 pieces"}</span>
+        </button>
+      </div>
+
       <div className="flex flex-col gap-2">
         <Label>Occasions</Label>
         <div className="flex flex-wrap gap-2">
-          {OCCASIONS.map((o) => {
+          {occasionOptions.map((o) => {
             const on = occasions.includes(o);
             return (
               <button

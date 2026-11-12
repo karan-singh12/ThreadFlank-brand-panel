@@ -37,6 +37,8 @@ export function ProductCard({ product, onEdit, onDelete }: { product: ProductIte
         )}
         <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#010214]/80 via-transparent to-transparent" />
         <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
+          {product.featured && <Badge tone="success" className="bg-canvas/80 backdrop-blur-md">★ Featured</Badge>}
+          {product.status !== "PUBLISHED" && <Badge tone="warning" className="bg-canvas/80 backdrop-blur-md">Draft</Badge>}
           {product.isDrapeReady ? <Badge tone="success" className="bg-canvas/80 backdrop-blur-md">Try-on ready</Badge> : <Badge className="bg-canvas/80 backdrop-blur-md">Not ready</Badge>}
         </div>
         {(out || low) && (
@@ -55,7 +57,7 @@ export function ProductCard({ product, onEdit, onDelete }: { product: ProductIte
       <div className="px-1 pt-3">
         <h3 className="truncate text-sm text-white">{product.title}</h3>
         <p className="mt-0.5 flex items-center justify-between text-xs">
-          <span className="font-medium text-ink-soft">{formatRupee(product.price)}</span>
+          <span className="font-medium text-ink-soft">{product.price > 0 ? formatRupee(product.price) : "Price not set"}</span>
           <span className="truncate pl-2 text-muted">{product.category}</span>
         </p>
 
