@@ -1,65 +1,99 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+/* Design tokens measured from the reference at 1440px. */
+@theme inline {
+  --font-sans: var(--font-familjen), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: #010214;
+  --color-ink: #ffffff;
+  --color-ink-soft: #f2f3f4;
+  --color-subtle: #babbc4;
+  --color-muted: #8d90a5;
+  --color-dim: #585463;
+  --color-accent: #6645eb;
+  --color-accent-bright: #7f62f6;
+  --color-accent-deep: #3f20be;
+  --color-cyan: #1fc5db;
+  --color-green: #28e69d;
+  --color-line: rgba(255, 255, 255, 0.1);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
+  --color-glass: rgba(255, 255, 255, 0.06);
+
+  /* 139px @1440 → 64px @390 */
+  --text-display: clamp(3.5rem, 2.26rem + 7.14vw, 8.6875rem);
+  --text-display--line-height: 1.2;
+  --text-display--letter-spacing: -0.03em;
+  /* 70px → 40px */
+  --text-h1: clamp(2.5rem, 1.84rem + 2.82vw, 4.375rem);
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.04em;
+  /* 48px → 32px */
+  --text-h2: clamp(2rem, 1.65rem + 1.5vw, 3rem);
+  --text-h2--line-height: 1.2;
+  --text-h2--letter-spacing: -0.02em;
+  /* 48px regular, mission statement → 26px */
+  --text-statement: clamp(1.625rem, 1.14rem + 2.07vw, 3rem);
+  --text-statement--line-height: 1.2;
+  --text-statement--letter-spacing: -0.04em;
+  /* 32px → 22px */
+  --text-lead: clamp(1.375rem, 1.155rem + 0.94vw, 2rem);
+  --text-lead--line-height: 1.2;
+  --text-lead--letter-spacing: -0.02em;
+  /* 28px → 22px */
+  --text-h3: clamp(1.375rem, 1.24rem + 0.56vw, 1.75rem);
+  --text-h3--line-height: 1.2;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.4;
+  --text-body-lg: 1.25rem;
+  --text-body-lg--line-height: 1.5;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.6;
+
+  --radius-card: 16px;
+  --radius-panel: 20px;
+  --radius-frame: 24px;
+  --radius-pill: 88px;
+
+  --container-page: 1440px;
+
+  --shadow-btn-primary: 0 4px 56px 3px rgba(98, 29, 237, 0.35);
+  --shadow-btn-light: 0 4px 56px 3px rgba(200, 176, 247, 0.2);
+
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* App chrome heights, including the phone's notch and home-indicator areas. */
 :root {
-  --font-inter: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --app-header: 4.5rem;
-  --app-tabbar: 4.5rem;
+  --app-header: calc(4rem + env(safe-area-inset-top));
+  --app-tabbar: calc(4rem + env(safe-area-inset-bottom));
 }
 
 html {
-  background: #010214;
-  color: #ffffff;
+  background: var(--color-canvas);
   scroll-behavior: smooth;
 }
 
+/* In-page anchors (#how, #features…) land below the fixed navbar. */
+section[id] {
+  scroll-margin-top: 88px;
+}
+
 body {
-  background-color: #010214;
-  color: #ffffff;
-  font-family: var(--font-inter);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
 
-/* Form input dark default overrides - NEVER allow white form inputs */
-input, textarea, select {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+::selection {
+  background: var(--color-accent);
+  color: white;
 }
 
-input:focus, textarea:focus, select:focus {
-  background-color: rgba(255, 255, 255, 0.07) !important;
-  border-color: rgba(127, 98, 246, 0.8) !important;
-  outline: none !important;
-}
-
-input::placeholder, textarea::placeholder {
-  color: #8d90a5 !important;
-}
-
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #010214;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-/* Chrome text gradients */
+/* Chrome heading fill: white at the cap line fading to grey at the baseline. */
 .chrome {
   background-image: linear-gradient(180deg, #ffffff 25%, #85849a 100%);
   -webkit-background-clip: text;
@@ -74,28 +108,37 @@ input::placeholder, textarea::placeholder {
   color: transparent;
 }
 
-/* Threadflank UI Design System Classes */
+.chrome-dim {
+  background-image: linear-gradient(180deg, #c3c2d2 0%, #6c6a80 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .btn-primary {
   background-image: linear-gradient(180deg, #3f20be 0%, #190c4d 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(127, 98, 246, 0.45);
+  box-shadow: var(--shadow-btn-primary), inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(127, 98, 246, 0.45);
   color: #ded6ff;
 }
 
-.btn-primary:hover {
-  background-image: linear-gradient(180deg, #4926dc 0%, #211066 100%);
-  color: #ffffff;
-}
-
 .btn-light {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(228, 227, 240, 0.9) 100%);
-  box-shadow: 0 4px 20px -6px rgba(200, 176, 247, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  color: #0b0b1e;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.7) 100%);
+  box-shadow: var(--shadow-btn-light), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  color: rgba(1, 2, 20, 0.72);
 }
 
+.glass-pill {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(171, 171, 171, 0.05) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Glass cards with a lavender light along the top edge (a 1px background layer, so sizes don't change). */
 .card-violet {
   background-image:
     linear-gradient(90deg, transparent 8%, rgba(196, 177, 250, 0.45) 50%, transparent 92%),
-    linear-gradient(180deg, rgba(102, 69, 235, 0.12) 0%, rgba(14, 15, 27, 0.65) 100%);
+    linear-gradient(180deg, rgba(102, 69, 235, 0.12) 0%, rgba(14, 15, 27, 0.55) 100%);
   background-size: 100% 1px, 100% 100%;
   background-repeat: no-repeat;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
@@ -104,54 +147,207 @@ input::placeholder, textarea::placeholder {
 .card-violet-strong {
   background-image:
     linear-gradient(90deg, transparent 8%, rgba(196, 177, 250, 0.55) 50%, transparent 92%),
-    linear-gradient(180deg, rgba(102, 69, 235, 0.18) 0%, rgba(21, 22, 38, 0.7) 100%);
+    linear-gradient(180deg, rgba(102, 69, 235, 0.17) 0%, rgba(21, 22, 38, 0.55) 100%);
   background-size: 100% 1px, 100% 100%;
   background-repeat: no-repeat;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
 }
 
-.glass-panel {
-  background-color: rgba(9, 11, 30, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* Glossy grey chip used for app icons orbiting in integration visuals. */
+.chip-gloss {
+  background-image: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.1) 70%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
 }
 
-/* Selected chip, tab or segment: off-white like the light button, with dark text */
+/* Dark keycap with violet rim, used for shortcut / tool icons. */
+.keycap {
+  background-image: linear-gradient(180deg, #221b4a 0%, #120f2c 100%);
+  box-shadow: inset 0 0 0 1px rgba(160, 140, 255, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.08),
+    0 12px 30px -12px rgba(0, 0, 0, 0.8);
+}
+
+/* Scrollable rows that are moved by drag/swipe or arrow handles instead of a visible bar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.fade-x {
+  mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+}
+
+.icon-silver {
+  color: #e9e9f2;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.25));
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-slow-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: var(--lo, 0.3);
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+}
+
+/* A streak that crosses the sky quickly, then rests for the rest of the (long) cycle. */
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle, 28deg)) translateX(0);
+  }
+  2% {
+    opacity: 1;
+  }
+  9% {
+    opacity: 0;
+    transform: rotate(var(--angle, 28deg)) translateX(var(--travel, 280px));
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle, 28deg)) translateX(var(--travel, 280px));
+  }
+}
+
+/* Ripple leaving the logo badge. */
+@keyframes logo-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+.animate-marquee {
+  animation: marquee var(--marquee-duration, 40s) linear infinite;
+}
+.animate-marquee-reverse {
+  animation: marquee var(--marquee-duration, 40s) linear infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Drape Studio render overlay: a light band sweeping the stage, and an indeterminate progress bar. */
+@keyframes drape-scan {
+  from {
+    top: -6rem;
+  }
+  to {
+    top: 100%;
+  }
+}
+
+@keyframes drape-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+/* ── App surfaces: the landing page's glass, reused inside the app ───────── */
+
+/* Selected chip, tab or segment: off-white like the light button, with dark text. */
 .chip-on {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(228, 227, 240, 0.92) 100%);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(228, 227, 240, 0.9) 100%);
   box-shadow: 0 6px 20px -10px rgba(200, 176, 247, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.85);
   color: #0b0b1e;
 }
 
-.glass-pill {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(171, 171, 171, 0.04) 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+/* Your chat bubbles: one violet-to-blue gradient across the screen (as on the landing page's glow),
+   so bubbles shift colour as they scroll, like Instagram's. iOS ignores `fixed` and shows it per bubble. */
+.bubble-mine {
+  background-color: #5a3ee8;
+  background-image: linear-gradient(180deg, #7b5cf2 0%, #6645eb 45%, #3f63dd 100%);
+  background-attachment: fixed;
 }
 
-.no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* Phones zoom into any text field under 16px when it's focused; inside the app, keep fields at 16px on touch screens. */
+@media (pointer: coarse) {
+  [data-app] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select) {
+    font-size: 16px;
+  }
 }
 
-@keyframes fade-in {
+/* While you type a message on a phone, the tab bar steps aside so the composer sits on the keyboard. */
+@media (width < 48rem) {
+  body:has([data-composer]:focus) [data-tabbar] {
+    display: none;
+  }
+  body:has([data-composer]:focus) [data-chat-frame] {
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Loading placeholder: a soft light sweep over a glass block. */
+@keyframes shimmer {
   from {
-    opacity: 0;
+    transform: translateX(-100%);
   }
   to {
-    opacity: 1;
+    transform: translateX(100%);
   }
 }
-.animate-fade-in {
-  animation: fade-in 220ms ease-out both;
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(171, 154, 255, 0.14), transparent);
+  animation: shimmer 1.6s ease-in-out infinite;
 }
 
+/* Content swapping in (picker panels, look-board pieces). */
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -163,5 +359,18 @@ input::placeholder, textarea::placeholder {
   }
 }
 .animate-rise-in {
-  animation: rise-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Page entrance on navigation. Opacity only: a transform here would displace fixed-position children. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 260ms ease-out both;
 }
