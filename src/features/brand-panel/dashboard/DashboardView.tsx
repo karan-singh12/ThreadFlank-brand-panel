@@ -17,6 +17,7 @@ import type { Metric, ProductItem } from "../types";
 import { useResource } from "../useResource";
 
 const loadMetrics = brandApi.metrics;
+const loadTop = (token: string, signal: AbortSignal) => brandApi.catalogPage(token, { sort: "popular" }, { limit: 4, signal }).then((p) => p.items);
 
 const ACTIONS = [
   { href: "/catalog", label: "Add a garment", hint: "Grow your try-on catalog", icon: Layers },
@@ -29,7 +30,7 @@ const total = (m?: Metric) => m?.total ?? null;
 const show = (n: number | null, fmt: (v: number) => string = (v) => v.toLocaleString("en-IN")) => (n == null ? "—" : fmt(n));
 
 export function DashboardView() {
-  const { brand, products } = useReadyPanel();
+  const { brand, products, facets } = useReadyPanel();
   const metrics = useResource(loadMetrics);
   const m = metrics.data;
 
@@ -40,7 +41,8 @@ export function DashboardView() {
   const conversion = total(m?.conversionRate);
   const hasActivity = [views, drapes, saves, clicks].some((n) => (n ?? 0) > 0);
 
-  const ready = products.filter((p) => p.isDrapeReady).length;
+  const totalPieces = facets?.total ?? products.length;
+  const ready = facets ? facets.total - facets.notReady : products.filter((p) => p.isDrapeReady).length;
   const hasRank = brand.currentRank > 0 && brand.totalBrands > 0;
 
   return (
@@ -72,7 +74,7 @@ export function DashboardView() {
         </div>
         <div className="flex gap-6 sm:text-right">
           {[
-            ["Garments", products.length],
+            ["Garments", totalPieces],
             ["Try-on ready", ready],
             ["AI credits", brand.aiCredits],
           ].map(([label, value]) => (
@@ -145,7 +147,7 @@ export function DashboardView() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         <Occasions products={products} />
-        <TopGarments products={products} />
+        <TopGarments total={totalPieces} />
       </div>
     </div>
   );
@@ -215,17 +217,19 @@ function Occasions({ products }: { products: ProductItem[] }) {
   );
 }
 
-function TopGarments({ products }: { products: ProductItem[] }) {
-  const top = [...products].sort((a, b) => (b.drapesCount ?? 0) - (a.drapesCount ?? 0)).slice(0, 4);
+function TopGarments({ total }: { total: number }) {
+  // Ranked by the server across the whole catalog, not just the pieces already loaded here.
+  const topList = useResource(loadTop);
+  const top = topList.data ?? [];
   return (
     <Card className="space-y-4">
       <SectionHeader
         title="Top garments"
         hint="Most tried on"
         action={
-          products.length > 0 ? (
+          total > 0 ? (
             <Link href="/catalog" className="flex h-9 items-center gap-1 text-xs text-accent-bright hover:text-white">
-              All {products.length} <ArrowRight className="size-3.5" aria-hidden />
+              All {total.toLocaleString("en-IN")} <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           ) : undefined
         }

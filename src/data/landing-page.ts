@@ -13,22 +13,22 @@ export const nav = {
   links: [
     { label: "How it works", href: "#how" },
     { label: "Features", href: "#features" },
-    { label: "For brands", href: "#brands" },
+    { label: "Try-on widget", href: "#brands" },
     { label: "Pricing", href: "#pricing" },
     { label: "Contact", href: "/contact" },
   ],
-  login: { label: "Log in", href: "/login" },
-  cta: { label: "Start free", href: "/signup" },
-  signedInCta: { label: "Open app", href: "/drape" },
+  login: { label: "Brand login", href: "/login" },
+  cta: { label: "List your brand", href: "/signup" },
+  signedInCta: { label: "Open dashboard", href: "/dashboard" },
 };
 
 export const hero = {
-  tickerItems: ["Virtual try-on", "Selfie to style", "Smart wardrobe", "Occasion planner", "Twin circle"],
-  leftBlurb: "Take one selfie, add your height and build, and Threadflank drapes any outfit on you — from a brand's feed, a product link or your own closet.",
-  rightBlurb: "Explore brand stores, plan looks for every occasion, track what each piece costs per wear and decide with your circle.",
-  title: "See it on you first",
-  primaryCta: { label: "Try it free", href: "/signup" },
-  signedInPrimaryCta: { label: "Open Drape studio", href: "/drape" },
+  tickerItems: ["Catalog at scale", "Collections", "Virtual try-on", "Launch drops", "AI Studio", "Shopper insights"],
+  leftBlurb: "Add your whole catalog, hundreds of pieces at a time, and let shoppers see every one on themselves before they head to your store to buy.",
+  rightBlurb: "Group pieces into collections, schedule launch drops with waitlists, write copy with AI and watch which garments get tried on most.",
+  title: "Your catalog, tried on",
+  primaryCta: { label: "List your brand", href: "/signup" },
+  signedInPrimaryCta: { label: "Open dashboard", href: "/dashboard" },
   secondaryCta: { label: "How it works", href: "#how" },
 };
 
@@ -76,50 +76,50 @@ export const studio = {
 export const mission = {
   // One entry per desktop line; lines reflow naturally on smaller screens.
   statementLines: [
-    "Getting dressed shouldn't be guesswork.",
-    "Threadflank shows every outfit on your own body",
-    "before you spend a rupee, keeps your wardrobe",
-    "in your pocket, and brings the people you trust",
-    "into every decision.",
+    "Shoppers hesitate when they can't picture it.",
+    "Threadflank puts every piece in your catalog",
+    "on the shopper's own body, then sends them",
+    "straight to your store to buy. You keep the sale,",
+    "the customer and the price.",
   ],
-  stat: { value: "<15s", label: ["to see any outfit", "on yourself"] },
+  stat: { value: "500", label: ["garments in a single", "bulk action"] },
   categories: ["shirt", "footprints", "shopping-bag", "glasses", "gem", "watch", "crown", "scissors"],
 };
 
 export type FeatureCard = { id: string; icon: string; title: string; description: string };
 
 export const features = {
-  eyebrow: "Everything in one app",
-  title: "Your stylist, in your pocket",
+  eyebrow: "Everything in one panel",
+  title: "Built for brands with big catalogs",
   tabs: [
     {
       id: "try-on",
       label: "Try-on",
       icon: "wand-sparkles",
       cards: [
-        { id: "link", icon: "link", title: "Try on from any link", description: "Paste a product page from any store — Threadflank pulls the garment and drapes it on you." },
-        { id: "poses", icon: "camera", title: "Poses & motion", description: "Check the fit from the side, the back or mid-stride — even as a short clip." },
-        { id: "scenes", icon: "sun", title: "Any scene", description: "Studio, sunset terrace or festive lights — preview the look where you'll wear it." },
+        { id: "link", icon: "link", title: "Try-on on your product pages", description: "Shoppers see your garment on themselves from your store or from Threadflank, then tap Buy to land on your site." },
+        { id: "poses", icon: "camera", title: "Every angle", description: "Front, side and mid-stride views help shoppers judge the fit and cut down on returns." },
+        { id: "scenes", icon: "sun", title: "Any scene", description: "Studio, daylight or festive lights: shoppers preview your piece where they will wear it." },
       ],
     },
     {
       id: "wardrobe",
-      label: "Wardrobe",
+      label: "Catalog",
       icon: "shirt",
       cards: [
-        { id: "closet", icon: "layers", title: "Your closet, digitized", description: "Snap your clothes once, then mix them into looks whenever you like." },
-        { id: "combos", icon: "wand-sparkles", title: "AI outfit combos", description: "Name the occasion — Threadflank builds outfits from what you already own." },
-        { id: "value", icon: "wallet", title: "Cost per wear", description: "See what each piece really costs you, and what's gathering dust." },
+        { id: "closet", icon: "layers", title: "Hundreds of pieces, organised", description: "Search, filter and sort 200 to 500 garments per brand, a page at a time, without the panel slowing down." },
+        { id: "combos", icon: "wand-sparkles", title: "Collections", description: "Group pieces into editions, tag occasions and move many garments between collections in one step." },
+        { id: "value", icon: "wallet", title: "Know what works", description: "Try-ons and buy clicks per garment show what shoppers reach for and what is gathering dust." },
       ],
     },
     {
       id: "together",
-      label: "Together",
+      label: "Growth",
       icon: "users",
       cards: [
-        { id: "circle", icon: "users", title: "Twin circle", description: "Add your partner, family or best friend, then see the two of you styled together in one photo." },
-        { id: "events", icon: "calendar-heart", title: "Plan every occasion", description: "Weddings, sangeets, parties — everyone locks in their look in one place." },
-        { id: "vote", icon: "thumbs-up", title: "Vote & stylist notes", description: "Share a look for a quick vote, or ask a verified stylist for honest notes." },
+        { id: "circle", icon: "users", title: "Shared by shoppers", description: "Shoppers send looks to friends and family, so one try-on of your piece reaches more people." },
+        { id: "events", icon: "calendar-heart", title: "Launch drops", description: "Schedule a drop, collect a waitlist, and tell shoppers when it goes live." },
+        { id: "vote", icon: "thumbs-up", title: "Stand out on Discover", description: "Bid for a Runway slot to put your collection at the top of Discover for a period." },
       ],
     },
   ],
@@ -156,81 +156,81 @@ export const features = {
 
 export const howItWorks = {
   eyebrow: "How it works",
-  title: ["From selfie to perfect fit", "in three simple steps"],
+  title: ["From signup to first sale", "in three simple steps"],
   tools: ["shirt", "shopping-bag", "footprints", "glasses", "gem", "watch"],
   steps: [
     {
       id: "twin",
-      eyebrow: "Step 1 · Your selfie",
+      eyebrow: "Step 1 · Your brand",
       eyebrowIcon: "scan-face",
-      title: "Take one selfie",
+      title: "Set up your brand",
       description:
-        "Snap a clear selfie (or pick one from your gallery) and add your height, weight and skin tone. That's all Threadflank needs to put you in any outfit — your face comes straight from your photo.",
+        "Create your account, verify your email and add your logo, story and website. Once the team approves your brand, your store page goes live on Threadflank.",
     },
     {
       id: "looks",
-      eyebrow: "Step 2 · Drape",
+      eyebrow: "Step 2 · Catalog",
       eyebrowIcon: "wand-sparkles",
-      title: "See looks for every plan",
+      title: "Add your garments",
       description:
-        "Describe your week or paste a product link. Threadflank drapes each outfit on you — photo-real, true to the fabric and the fit.",
+        "Add pieces with a photo, price, category and buy link, and group them into collections. Pieces with a clear photo are ready for try-on straight away.",
     },
     {
       id: "decide",
-      eyebrow: "Step 3 · Decide",
+      eyebrow: "Step 3 · Sell",
       eyebrowIcon: "thumbs-up",
-      title: "Decide together, buy once",
+      title: "Shoppers try on, then buy from you",
       description:
-        "Share the shortlist with your circle, lock in the winner for the event, and only buy what you'll actually wear.",
+        "Shoppers drape your pieces on themselves and tap Buy to reach your own website. You see the numbers on your dashboard.",
     },
   ],
   twin: {
     photo: "/images/people/priya.jpg",
-    tooltip: { label: "Selfie ready", value: "Face · Build · Tone", percent: "100%" },
+    tooltip: { label: "Store ready", value: "Logo · Story · Website", percent: "100%" },
     rows: [
-      { label: "Height", value: "165 cm", status: "Set", color: "#6645eb" },
-      { label: "Weight", value: "58 kg", status: "Set", color: "#a99bff" },
-      { label: "Skin tone", value: "Medium", status: "Matched", color: "#ffffff" },
+      { label: "Brand profile", value: "Logo, story", status: "Set", color: "#6645eb" },
+      { label: "Website", value: "Buy links", status: "Set", color: "#a99bff" },
+      { label: "Verification", value: "Email", status: "Done", color: "#ffffff" },
     ],
   },
   looks: {
-    promptLabel: "Plan my week",
-    prompt: "Office on Monday, a date on Friday and brunch on Sunday — use my trench and white sneakers.",
+    promptLabel: "Plan a launch",
+    prompt: "Put the Wedding Edit live on Friday evening, open the waitlist now and feature three hero pieces.",
     outputs: [
-      { label: "Office", image: "/images/look_office.png", tone: "ember" },
-      { label: "Date night", image: "/images/look_party.png", tone: "meadow" },
-      { label: "Brunch", image: "/images/look_brunch.png", tone: "dusk" },
+      { label: "Wedding Edit", image: "/images/look_office.png", tone: "ember" },
+      { label: "Festive Capsule", image: "/images/look_party.png", tone: "meadow" },
+      { label: "Resort Break", image: "/images/look_brunch.png", tone: "dusk" },
     ],
   },
   decide: {
     filters: [
-      { label: "Occasion", value: "Sangeet" },
-      { label: "Dress code", value: "Ethnic" },
-      { label: "Budget", value: "₹5,000" },
+      { label: "Collection", value: "Wedding Edit" },
+      { label: "Category", value: "Ethnic Wear" },
+      { label: "Status", value: "Live" },
     ],
-    suggestedLabel: "Shortlist for the sangeet",
+    suggestedLabel: "Top pieces this week",
     images: [
       { image: "/images/feed/rangrez-saree.jpg", tone: "ember" },
       { image: "/images/brands/rangrez.jpg", tone: "neon" },
     ],
     actions: [
-      { label: "Ask my circle to vote", icon: "users" },
-      { label: "Lock in for the event", icon: "calendar-heart" },
+      { label: "Open the waitlist", icon: "users" },
+      { label: "Schedule the drop", icon: "calendar-heart" },
     ],
   },
 };
 
 export const forBrands = {
-  eyebrow: "For brands",
+  eyebrow: "Try-on widget",
   title: "Try-on on every product page",
   intro: [
     { text: "Add Threadflank's ", strong: false },
-    { text: "try-on widget to your store with one line of code", strong: true },
+    { text: "try-on widget to your own store with one line of code", strong: true },
     { text: ", and let shoppers see your pieces on themselves before they check out.", strong: false },
   ],
   outro: [
-    { text: "Post to the Threadflank feed too", strong: true },
-    { text: " — brand stories and shoppable posts put your collection in front of people who can try it on in one tap.", strong: false },
+    { text: "Your catalog also lives on Threadflank", strong: true },
+    { text: " — a virtual store page and Discover shelves put your collections in front of shoppers who can try them on in one tap.", strong: false },
   ],
   outerApps: [
     { icon: "store", size: 108 },
@@ -246,58 +246,58 @@ export const forBrands = {
     {
       icon: "code",
       title: "One-line install",
-      description: "Drop our script on Shopify or any custom storefront — a try-on button appears on every product page.",
+      description: "Drop our script on Shopify or any custom storefront. Allow your domains and rotate the key from Settings whenever you need.",
       side: "left",
     },
     {
       icon: "chart-square",
-      title: "Shopper insights",
-      description: "See which products get tried on, where shoppers drop off and what brings them back.",
+      title: "Per-piece numbers",
+      description: "See store views, try-ons and buy clicks for the brand and for each garment, and find what shoppers reach for.",
       side: "right",
     },
     {
       icon: "building-2",
-      title: "White-label ready",
-      description: "Run the drape engine under your own brand, tuned on your catalogue, with an SLA that fits.",
+      title: "Your team, your store",
+      description: "Invite managers to the panel. Every buy link goes to your own website, so orders and payments stay with you.",
       side: "left",
     },
   ],
-  primaryCta: { label: "Talk to sales", href: "/contact?topic=brands" },
+  primaryCta: { label: "List your brand", href: "/signup" },
   secondaryCta: { label: "Brand pricing", href: "/pricing?for=brands" },
 };
 
 export const empower = {
-  eyebrow: "Made for real life",
-  title: "Style, sorted",
+  eyebrow: "Made for real catalogs",
+  title: "Scale, sorted",
   cards: {
     speed: {
-      title: "Looks in seconds",
-      description: "Most looks are back in seconds — one credit each, and a failed render never costs you one.",
+      title: "Fast at any size",
+      description: "The catalog loads a page at a time and searches on the server, so a brand with 500 garments stays quick.",
       apps: ["shirt", "shopping-bag", "gem", "footprints", "glasses"],
     },
     vote: {
-      title: "Vote before you buy",
-      description: "Share any look with your circle for a quick thumbs-up — or a verified stylist's honest notes.",
+      title: "Shoppers decide faster",
+      description: "Seeing a piece on themselves, then sharing it for a quick thumbs-up, helps shoppers commit to buying.",
       keys: ["thumbs-up", "thumbs-down"],
       badge: "4 of 5 love it",
     },
     stores: ["store", "tag", "shopping-bag", "link", "receipt", "wallet"],
     occasions: ["briefcase", "party-popper", "coffee", "plane", "calendar-heart", "sun"],
     scenes: {
-      title: "You, in every scene",
-      description: "Studio, daylight, sunset terrace, garden, city street or festive lights — see the look where you'll actually wear it.",
+      title: "Shown in every scene",
+      description: "Studio, daylight, terrace, garden, city street or festive lights: shoppers see your piece where they will wear it.",
       icons: ["sun", "camera", "film", "palette"],
     },
     value: {
-      title: "Know your cost per wear",
-      description: "Track what you wear, spot the pieces gathering dust, and make every new buy count.",
+      title: "Know your best sellers",
+      description: "Try-ons and buy clicks per garment show what works, so you can restock and promote with confidence.",
       value: "₹630",
       unit: "per wear",
       change: "18%",
     },
     discover: {
-      title: "Discover, then try on",
-      description: "A feed of brands and trends where every post is one tap away from trying it on.",
+      title: "Get discovered",
+      description: "Your live pieces show up on Discover shelves and your store page, each one a tap away from a try-on.",
       query: "Linen co-ords for a beach wedding",
       tags: ["Ethnic", "Streetwear", "Minimal"],
     },
@@ -306,17 +306,17 @@ export const empower = {
 
 export const pricing = {
   eyebrow: "Pricing",
-  title: "Simple, honest pricing",
+  title: "Plans for brands",
   unitOnce: "ONE-TIME",
   notes: { free: "Free, no card needed", once: "Pay once · credits never expire" },
-  allPlans: { label: "All credit packs, brand pricing & FAQs", href: "/pricing" },
+  allPlans: { label: "Compare plans & FAQs", href: "/pricing?for=brands" },
 };
 
 export const finalCta = {
-  title: ["Your next outfit,", "tried on first"],
-  description: "Take a selfie and try on your first looks in a minute. Free to start — no card needed.",
-  primaryCta: { label: "Try it free", href: "/signup" },
-  signedInPrimaryCta: { label: "Open Drape studio", href: "/drape" },
+  title: ["Your next collection,", "tried on first"],
+  description: "Create your brand account, add your garments and go live on Threadflank. Start in minutes, no card needed.",
+  primaryCta: { label: "List your brand", href: "/signup" },
+  signedInPrimaryCta: { label: "Open dashboard", href: "/dashboard" },
   secondaryCta: { label: "Talk to sales", href: "/contact?topic=brands" },
 };
 
@@ -327,8 +327,8 @@ export const footer = {
       links: [
         { label: "How it works", href: "#how" },
         { label: "Features", href: "#features" },
-        { label: "For brands", href: "#brands" },
-        { label: "Pricing", href: "/pricing" },
+        { label: "Try-on widget", href: "#brands" },
+        { label: "Pricing", href: "/pricing?for=brands" },
       ],
     },
     {
@@ -342,7 +342,7 @@ export const footer = {
     },
   ],
   newsletter: {
-    label: "Get style drops and product news",
+    label: "Get brand tips and product news",
     placeholder: "name@email.com",
     button: "Subscribe",
     success: "You're on the list — watch your inbox.",
@@ -360,67 +360,66 @@ export const footer = {
 /** Feature-by-feature detail grid under the feature tabs. Describe only what the app does today. */
 export const featureDetails = {
   eyebrow: "What you get",
-  title: "Every part of the app, in plain words",
+  title: "Every part of the brand panel, in plain words",
   groups: [
     {
-      icon: "shirt",
-      title: "Drape studio",
+      icon: "layers",
+      title: "Catalog at scale",
       points: [
-        "One selfie plus your height and build is all it takes",
-        "Drape from a product link, a photo or a piece in your wardrobe",
-        "Pick the scene, from studio light to festive lights",
-        "Style yourself with one person from your circle in a single photo",
-        "One credit per look, and failed renders are refunded",
-      ],
-    },
-    {
-      icon: "compass",
-      title: "Discover",
-      points: [
-        "Fresh drops and shelves from brands on Threadflank",
-        "Filter by category, or search outfits, brands and fabrics",
-        "Tap Try on from any card to drape it on yourself",
-        "Save looks and share them with friends",
+        "Pieces load a page at a time, so 500 garments feel as quick as 20",
+        "Search by name, SKU or collection, and filter by category, stock or visibility",
+        "Sort by newest, most tried on, price or lowest stock",
+        "Select many pieces to go live, hide, delete or move them in one step",
       ],
     },
     {
       icon: "store",
-      title: "Brands",
+      title: "Collections & store page",
       points: [
-        "Open a brand's store and browse its collections",
-        "See every piece with its price and fabric",
-        "Try any piece on before heading to the brand's own site",
-        "Brands can add a try-on button to their product pages",
+        "Group pieces into collections such as Wedding Edit or Festive Capsule",
+        "Feature up to 8 hero pieces on your store page",
+        "Keep drafts hidden from shoppers until they are ready",
+        "Every buy button opens your own website",
       ],
     },
     {
-      icon: "layers",
-      title: "My Wardrobe",
+      icon: "shirt",
+      title: "Try-on",
       points: [
-        "Add your clothes once and sort them by category",
-        "Mark what you wore and see cost per wear",
-        "Spot pieces unworn for 90 days or more",
-        "Insights show which pieces earn their place",
+        "Shoppers drape any garment with a clear photo on themselves",
+        "See which pieces are try-on ready and which still need an image",
+        "Add the widget to your product pages with one line of code",
+        "Control which domains may load it",
+      ],
+    },
+    {
+      icon: "zap",
+      title: "Launch drops",
+      points: [
+        "Schedule a drop with a date and a banner",
+        "Shoppers join the waitlist before launch",
+        "Edit or cancel a drop any time before it goes live",
+        "See waitlist counts at a glance",
       ],
     },
     {
       icon: "wand-sparkles",
-      title: "Outfit Planner",
+      title: "AI Studio",
       points: [
-        "Choose the occasion: wedding, festive, office, date night and more",
-        "For weddings, pick ceremonies like Haldi, Mehendi and Sangeet",
-        "Add city, budget and dress code",
-        "Build from your closet, mix in new pieces, or curate fresh",
+        "Write product descriptions, captions, announcements and emails",
+        "Pick a garment from your catalog and edit the options before you use them",
+        "Motion previews for your pieces",
+        "Credits are shown in the panel; failed runs are not charged",
       ],
     },
     {
-      icon: "message-circle",
-      title: "Together",
+      icon: "chart-square",
+      title: "Insights & visibility",
       points: [
-        "Chat with friends and groups inside the app",
-        "Share a look and get a quick vote",
-        "Plan events so everyone locks in their outfit",
-        "Ask a verified stylist for honest notes",
+        "Dashboard with store views, try-ons, saves, shares and buy clicks",
+        "Top garments ranked across your whole catalog",
+        "Bid for a Runway slot to be featured on Discover",
+        "Invite your team and keep your account secure",
       ],
     },
   ],

@@ -5,9 +5,10 @@ import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Reveal } from "@/components/motion/Reveal";
-import { CreditOffers } from "@/features/billing/CreditOffers";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { pricing } from "@/data/landing-page";
-import { pricingContent } from "@/data/site-content";
+import { pricingContent, type Plan } from "@/data/site-content";
 
 /** Meridian lines of a sphere, used behind the heading and across the planet glow. */
 function Meridians({ className }: { className?: string }) {
@@ -20,7 +21,7 @@ function Meridians({ className }: { className?: string }) {
   );
 }
 
-/** Shopper credit packs — the same live offer as the /pricing page, so the two never disagree. */
+/** Brand plans — read from the same content as the /pricing page, so the two never disagree. */
 export function Pricing() {
   return (
     <section id="pricing" className="relative overflow-x-clip pt-40 lg:pt-[370px]">
@@ -28,7 +29,7 @@ export function Pricing() {
 
       <Container className="relative">
         <SectionHeading eyebrow={pricing.eyebrow} title={pricing.title}>
-          <p className="mt-3 max-w-[700px] text-sm text-subtle sm:text-body">{pricingContent.description}</p>
+          <p className="mt-3 max-w-[700px] text-sm text-subtle sm:text-body">Put try-on on your product pages and your catalog in front of shoppers. Pick a plan, or talk to us about white-label.</p>
         </SectionHeading>
 
         <div className="relative mx-auto mt-16 max-w-[1100px] lg:mt-[96px]">
@@ -44,7 +45,29 @@ export function Pricing() {
           </div>
 
           <Reveal delay={0.1} y={48}>
-            <CreditOffers />
+            <ul className="grid gap-5 md:grid-cols-2">
+              {(pricingContent.brands as Plan[]).map((plan) => (
+                <li key={plan.id} className={cn("flex flex-col rounded-(--radius-panel) p-7 ring-1", plan.featured ? "bg-white/[0.06] ring-accent-bright/50" : "bg-white/[0.03] ring-white/10")}>
+                  <h3 className="text-xl font-medium text-white">{plan.name}</h3>
+                  <p className="mt-1 text-sm text-muted">{plan.blurb}</p>
+                  <p className="mt-5 text-h2 font-medium text-white">
+                    {plan.monthly == null ? pricingContent.custom : `₹${(plan.yearly ?? plan.monthly).toLocaleString("en-IN")}`}
+                    {plan.monthly != null && <span className="ml-1 text-sm font-normal text-muted">{pricingContent.perMonth}, {pricingContent.billedYearly}</span>}
+                  </p>
+                  <ul className="mt-6 flex-1 space-y-2.5">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2.5 text-sm text-subtle">
+                        <Check className="mt-0.5 size-4 shrink-0 text-accent-bright" aria-hidden />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={plan.monthly == null ? "/contact?topic=brands" : "/signup"} className="btn-primary mt-7 inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-medium">
+                    {plan.cta}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </Reveal>
         </div>
 

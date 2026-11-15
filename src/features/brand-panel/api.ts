@@ -2,6 +2,10 @@ import { apiRequest } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/config";
 import type {
   BidSlot,
+  BulkAction,
+  CatalogFacets,
+  CatalogQuery,
+  ImportResult,
   BrandProfile,
   BrandProfileUpdate,
   ContentRequest,
@@ -32,6 +36,33 @@ export const brandApi = {
 
   async catalog(token: string, signal?: AbortSignal) {
     return (await apiRequest<ProductItem[]>(b.catalog, { token, signal })).data;
+  },
+  /** One page of the catalog. The server filters and sorts; `cursor` continues where the last page ended. */
+  async catalogPage(token: string, query: Partial<CatalogQuery>, opts: { cursor?: string | null; limit?: number; signal?: AbortSignal } = {}) {
+    const params = new URLSearchParams({ limit: String(opts.limit ?? 24) });
+    if (opts.cursor) params.set("cursor", opts.cursor);
+    if (query.q?.trim()) params.set("q", query.q.trim());
+    if (query.category) params.set("category", query.category);
+    if (query.collection) params.set("collection", query.collection);
+    if (query.status) params.set("status", query.status);
+    if (query.stock === "out") params.set("outOfStock", "true");
+    if (query.stock === "low") params.set("lowStock", "true");
+    if (query.notReady) params.set("notReady", "true");
+    if (query.sort && query.sort !== "newest") params.set("sort", query.sort);
+    const res = await apiRequest<ProductItem[]>(`${b.catalog}?${params}`, { token, signal: opts.signal });
+    const meta = res.meta as { total?: number | null; nextCursor?: string | null } | undefined;
+    return { items: res.data, total: meta?.total ?? null, nextCursor: meta?.nextCursor ?? null };
+  },
+  async facets(token: string, signal?: AbortSignal) {
+    return (await apiRequest<CatalogFacets>(b.catalogFacets, { token, signal })).data;
+  },
+  async bulk(token: string, ids: string[], action: BulkAction, extra: { collection?: string; category?: string } = {}) {
+    const body = { ids, action, ...(action === "collection" ? { collection: extra.collection ?? "" } : {}), ...(action === "category" ? { category: extra.category ?? "" } : {}) };
+    return (await apiRequest<{ affected: number }>(b.catalogBulk, { method: "POST", token, body, timeoutMs: 60_000 })).data;
+  },
+  /** Up to 500 rows per call; the server reports each bad row instead of rejecting the file. */
+  async importRows(token: string, items: Record<string, string>[], updateExisting: boolean) {
+    return (await apiRequest<ImportResult>(b.catalogImport, { method: "POST", token, body: { items, updateExisting }, timeoutMs: 120_000 })).data;
   },
   async createGarment(token: string, garment: CreateGarmentInput) {
     return (await apiRequest<ProductItem>(b.catalog, { method: "POST", token, body: garment })).data;

@@ -12,6 +12,7 @@ import { Photo } from "@/components/ui/Photo";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { BrandPageHeader } from "../BrandPageHeader";
+import { useReadyPanel } from "../BrandPanelProvider";
 import { formatCompactNumber } from "@/lib/utils";
 import { brandApi } from "../api";
 import type { LaunchDrop } from "../types";
@@ -196,9 +197,12 @@ function DropCard({ drop, now, onEdit, onDelete }: { drop: LaunchDrop; now: numb
 
 function DropForm({ drop, onSaved, onDone }: { drop?: LaunchDrop; onSaved: (d: LaunchDrop) => void; onDone: () => void }) {
   const { token } = useAuth();
+  const { facets } = useReadyPanel();
+  const collections = facets?.collections ?? [];
   const [serverError, setServerError] = useState("");
   const {
     register,
+    setValue,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
@@ -240,7 +244,16 @@ function DropForm({ drop, onSaved, onDone }: { drop?: LaunchDrop; onSaved: (d: L
       <p className="-mt-2 text-sm text-muted">Activate a waitlist and put the collection in front of shoppers.</p>
       {serverError && <Notice tone="error">{serverError}</Notice>}
       {row("Drop title", errors.title?.message, <input type="text" autoFocus placeholder="e.g. Royal Banaras Capsule '26" aria-invalid={!!errors.title} className={input} {...register("title")} />)}
-      {row("Collection name", errors.collectionName?.message, <input type="text" placeholder="e.g. The Heritage Weave" aria-invalid={!!errors.collectionName} className={input} {...register("collectionName")} />)}
+      {row("Collection name", errors.collectionName?.message, <input type="text" placeholder="e.g. The Heritage Weave" aria-invalid={!!errors.collectionName} className={input} list="drop-collections" {...register("collectionName", { onBlur: (e) => {
+          // Picking one of the brand's own collections fills in how many garments it holds.
+          const hit = !drop && collections.find((c) => c.name.toLowerCase() === e.target.value.trim().toLowerCase());
+          if (hit) setValue("productsCount", String(hit.count), { shouldValidate: true });
+        } })} />)}
+      <datalist id="drop-collections">
+        {collections.map((c) => (
+          <option key={c.name} value={c.name} />
+        ))}
+      </datalist>
       <div className="grid grid-cols-2 gap-3">
         {row("Launch date", errors.launchDate?.message, <input type="date" aria-invalid={!!errors.launchDate} className={input} {...register("launchDate")} />)}
         {row("Garment count", errors.productsCount?.message, <input type="number" min={1} inputMode="numeric" aria-invalid={!!errors.productsCount} className={input} {...register("productsCount")} />)}

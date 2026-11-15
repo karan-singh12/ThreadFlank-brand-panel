@@ -5,12 +5,12 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ShowcaseTabs, type Screen } from "./ShowcaseTabs";
 
 const SCREENS = [
-  { id: "drape", label: "Drape studio", icon: "shirt", caption: "Your selfie, any outfit, the scene you pick." },
-  { id: "discover", label: "Discover", icon: "compass", caption: "Fresh drops from brands, one tap from trying on." },
-  { id: "brands", label: "Brands", icon: "store", caption: "Open a store and drape its pieces on yourself." },
-  { id: "wardrobe", label: "Wardrobe", icon: "layers", caption: "Your closet, with cost per wear for every piece." },
-  { id: "planner", label: "Outfit Planner", icon: "wand-sparkles", caption: "Looks for the occasion, from what you own." },
-  { id: "messages", label: "Messages", icon: "message-circle", caption: "Share looks and decide together." },
+  { id: "dashboard", label: "Dashboard", icon: "analytics", caption: "Store views, try-ons and buy clicks at a glance." },
+  { id: "catalog", label: "Catalog", icon: "layers", caption: "Hundreds of garments, filtered, sorted and grouped into collections." },
+  { id: "drops", label: "Launch drops", icon: "calendar-heart", caption: "Schedule a drop and collect a waitlist before it goes live." },
+  { id: "ai-studio", label: "AI Studio", icon: "wand-sparkles", caption: "Write descriptions, captions and announcements in seconds." },
+  { id: "bidding", label: "Runway", icon: "crown", caption: "Bid for a featured slot on Discover." },
+  { id: "settings", label: "Settings", icon: "settings", caption: "Store profile, try-on widget, team and security." },
 ] as const;
 
 const EXTS = ["png", "webp", "jpg", "jpeg"];
@@ -22,7 +22,7 @@ function find(name: string) {
   return ext ? `/screens/${name}.${ext}` : null;
 }
 
-/** "Inside the app": real screenshots dropped into /public/screens, designed placeholders until then. */
+/** "Inside the panel": real screenshots dropped into /public/screens, designed placeholders until then. */
 export function AppShowcase() {
   const screens: Screen[] = SCREENS.map((s) => ({
     ...s,
@@ -33,9 +33,9 @@ export function AppShowcase() {
   return (
     <section id="screens" className="pt-24 lg:pt-[140px]">
       <Container>
-        <SectionHeading eyebrow="Inside the app" title="See Threadflank at work">
+        <SectionHeading eyebrow="Inside the app" title="Inside the brand panel">
           <p className="mt-4 max-w-[640px] text-sm text-subtle sm:text-body">
-            Browse brands, drape any outfit on yourself, plan looks for every occasion and decide with your circle. Tap a tab to see each screen.
+            Manage your catalog, launch drops, AI tools and try-on widget from one place. Tap a tab to see each screen.
           </p>
         </SectionHeading>
         <ShowcaseTabs screens={screens} />

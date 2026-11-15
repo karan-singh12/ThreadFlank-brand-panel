@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { brandApi } from "./api";
-import type { BrandProfile, BrandProfileUpdate, CreateGarmentInput, ProductItem } from "./types";
+import type { BrandProfile, BrandProfileUpdate, CatalogFacets, CreateGarmentInput, ProductItem } from "./types";
 import { useResource } from "./useResource";
 
 type PanelValue = {
@@ -11,7 +11,11 @@ type PanelValue = {
   error: string;
   reload: () => void;
   brand: BrandProfile | null;
+  /** The newest 100 pieces: enough for the pickers in AI Studio. The Catalog tab pages through everything. */
   products: ProductItem[];
+  /** Counts for the whole catalog, however large. */
+  facets: CatalogFacets | null;
+  refreshFacets: () => void;
   updateBrand: (updates: BrandProfileUpdate) => Promise<void>;
   addProduct: (garment: CreateGarmentInput) => Promise<ProductItem>;
   updateBuyUrl: (id: string, buyUrl: string) => Promise<void>;
@@ -23,13 +27,16 @@ type PanelValue = {
 const Ctx = createContext<PanelValue | null>(null);
 
 const loadProfile = brandApi.profile;
-const loadCatalog = brandApi.catalog;
+const loadCatalog = (token: string, signal: AbortSignal) => brandApi.catalogPage(token, {}, { limit: 100, signal }).then((p) => p.items);
+const loadFacets = brandApi.facets;
 
 /** Owns the brand profile and catalog (shared by several tabs) and every write to them. Nothing is applied until the server confirms it. */
 export function BrandPanelProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   const profile = useResource(loadProfile);
   const catalog = useResource(loadCatalog);
+  const facets = useResource(loadFacets);
+  const { reload: refreshFacets } = facets;
   const { setData: setBrand, reload: reloadProfile } = profile;
   const { setData: setCatalog, reload: reloadCatalog } = catalog;
 
@@ -95,6 +102,8 @@ export function BrandPanelProvider({ children }: { children: ReactNode }) {
       reload,
       brand: profile.data,
       products: catalog.data ?? [],
+      facets: facets.data,
+      refreshFacets,
       updateBrand,
       addProduct,
       updateBuyUrl,
@@ -102,7 +111,7 @@ export function BrandPanelProvider({ children }: { children: ReactNode }) {
       deleteProduct,
       setCredits,
     }),
-    [status, profile.error, catalog.error, profile.data, catalog.data, reload, updateBrand, addProduct, updateBuyUrl, updateProduct, deleteProduct, setCredits]
+    [status, profile.error, catalog.error, profile.data, catalog.data, facets.data, refreshFacets, reload, updateBrand, addProduct, updateBuyUrl, updateProduct, deleteProduct, setCredits]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

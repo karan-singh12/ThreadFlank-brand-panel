@@ -42,9 +42,9 @@ function Toggle<T extends string>({ value, onChange, options, id }: { value: T; 
 }
 
 export function PricingView() {
-  // /pricing?for=brands opens on the brand plans (linked from the landing page).
+  // /pricing?for=brands opens on the brand plans by default; ?for=shoppers shows the credit packs.
   const params = useSearchParams();
-  const [audience, setAudience] = useState<Audience>(params.get("for") === "brands" ? "brands" : "shoppers");
+  const [audience, setAudience] = useState<Audience>(params.get("for") === "shoppers" ? "shoppers" : "brands");
   const [period, setPeriod] = useState<Period>("yearly");
   // Shoppers buy one-time credit packs; brands keep monthly / yearly plans.
   const plans = copy.brands;
