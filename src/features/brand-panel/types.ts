@@ -60,6 +60,8 @@ export type ProductItem = {
   buyUrl: string;
   featured: boolean;
   newDrop: boolean;
+  /** The brand's own grouping, e.g. "Wedding Edit 2026". */
+  collection?: string;
   /** The caption: what a post used to say. */
   description?: string;
   /** DRAFT is hidden from shoppers. */
@@ -74,6 +76,7 @@ export type CreateGarmentInput = {
   title: string;
   sku: string;
   price: number;
+  originalPrice?: number;
   images: string[];
   category: string;
   occasions: string[];
@@ -85,8 +88,47 @@ export type CreateGarmentInput = {
   buyUrl: string;
   featured: boolean;
   newDrop: boolean;
+  /** Empty string takes the piece out of its collection. */
+  collection?: string;
   description?: string;
   status?: "DRAFT" | "PUBLISHED";
+};
+
+export type CatalogSort = "newest" | "oldest" | "price_low" | "price_high" | "popular" | "stock_low";
+
+/** What the catalog list is filtered by; the server does the filtering. */
+export type CatalogQuery = {
+  q: string;
+  category: string;
+  /** A collection name, "none" for pieces in no collection, or "" for all. */
+  collection: string;
+  status: "" | "PUBLISHED" | "DRAFT";
+  stock: "" | "out" | "low";
+  notReady: boolean;
+  sort: CatalogSort;
+};
+
+export type CatalogFacets = {
+  total: number;
+  categories: { name: string; count: number }[];
+  collections: { name: string; count: number }[];
+  uncollected: number;
+  status: { published: number; draft: number };
+  outOfStock: number;
+  lowStock: number;
+  notReady: number;
+  featured: number;
+};
+
+export type BulkAction = "publish" | "draft" | "delete" | "collection" | "category";
+
+export type ImportResult = {
+  received: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: { row: number; sku?: string; message: string }[];
 };
 
 export type LaunchDrop = {

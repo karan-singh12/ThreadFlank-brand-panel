@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { brandApi } from "../api";
 import { BrandPageHeader } from "../BrandPageHeader";
 import { useReadyPanel } from "../BrandPanelProvider";
+import { GarmentSearch, useGarmentPicker } from "../useGarmentPicker";
 import type { SimulationResult } from "../types";
 import { errorMessage, useResource } from "../useResource";
 import { ContentStudio } from "./ContentStudio";
@@ -38,6 +39,7 @@ const readAsDataUrl = (file: File) =>
 function VideoStudio() {
   const { token } = useAuth();
   const { brand, products, setCredits } = useReadyPanel();
+  const picker = useGarmentPicker();
   const presets = useResource(loadPresets);
 
   const [productId, setProductId] = useState<string | null>(null);
@@ -51,7 +53,7 @@ function VideoStudio() {
   const [videoFailed, setVideoFailed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const activeProduct = products.find((p) => p.id === productId) ?? (custom ? undefined : products[0]);
+  const activeProduct = (picker.selected && picker.selected.id === productId ? picker.selected : undefined) ?? (custom ? undefined : products[0]);
   const activeImage = custom?.dataUrl ?? activeProduct?.images?.[0] ?? "";
   const list = presets.data ?? [];
   const activePreset = list.find((p) => p.id === presetId) ?? list[0];
@@ -135,6 +137,7 @@ function VideoStudio() {
             activeProduct && <span className="truncate text-muted">Active: {activeProduct.title}</span>
           )}
         </div>
+        <GarmentSearch picker={picker} />
         <div className="no-scrollbar flex items-center gap-2.5 overflow-x-auto pb-2">
           <button
             type="button"
@@ -145,7 +148,7 @@ function VideoStudio() {
             <span className="whitespace-nowrap font-medium">Upload a photo</span>
           </button>
           <input ref={fileRef} type="file" accept="image/*" onChange={onUpload} className="hidden" />
-          {products.map((p) => {
+          {picker.list.map((p) => {
             const selected = !custom && activeProduct?.id === p.id;
             return (
               <button
@@ -154,6 +157,7 @@ function VideoStudio() {
                 aria-pressed={selected}
                 onClick={() => {
                   setProductId(p.id);
+                  picker.pick(p);
                   setCustom(null);
                   setResult(null);
                 }}

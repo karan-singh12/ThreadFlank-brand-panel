@@ -1,10 +1,10 @@
 "use client";
 
-import { ExternalLink, Pencil, Shirt, Trash2 } from "lucide-react";
+import { Check, ExternalLink, Pencil, Shirt, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Photo } from "@/components/ui/Photo";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { formatCompactNumber, formatRupee } from "@/lib/utils";
+import { cn, formatCompactNumber, formatRupee } from "@/lib/utils";
 import { brandApi } from "../api";
 import type { ProductItem } from "../types";
 import { LOW_STOCK_AT } from "./constants";
@@ -18,7 +18,7 @@ const hostOf = (url: string) => {
 };
 
 /** One garment: photo first, then price, the buy-redirect and its numbers. */
-export function ProductCard({ product, onEdit, onDelete }: { product: ProductItem; onEdit: () => void; onDelete: () => void }) {
+export function ProductCard({ product, selected, onToggleSelect, onEdit, onDelete }: { product: ProductItem; selected: boolean; onToggleSelect: () => void; onEdit: () => void; onDelete: () => void }) {
   const { token } = useAuth();
   const image = product.images?.[0];
   const host = hostOf(product.buyUrl);
@@ -27,7 +27,7 @@ export function ProductCard({ product, onEdit, onDelete }: { product: ProductIte
 
   return (
     <article className="group flex flex-col">
-      <div className="relative aspect-[3/4] overflow-hidden rounded-[18px] bg-[radial-gradient(ellipse_at_50%_30%,#1c1840_0%,#0b0c22_75%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_20px_50px_-30px_rgba(0,0,0,0.9)] transition-[transform,box-shadow] duration-300 md:group-hover:-translate-y-1.5 md:group-hover:shadow-[inset_0_0_0_1px_rgba(171,154,255,0.45),0_30px_60px_-24px_rgba(102,69,235,0.5)]">
+      <div className={cn("relative aspect-[3/4] overflow-hidden rounded-[18px] bg-[radial-gradient(ellipse_at_50%_30%,#1c1840_0%,#0b0c22_75%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_20px_50px_-30px_rgba(0,0,0,0.9)] transition-[transform,box-shadow] duration-300 md:group-hover:-translate-y-1.5 md:group-hover:shadow-[inset_0_0_0_1px_rgba(171,154,255,0.45),0_30px_60px_-24px_rgba(102,69,235,0.5)]", selected && "ring-2 ring-accent-bright")}>
         {image ? (
           <Photo src={image} alt={product.title} className="object-top transition-transform duration-500 md:group-hover:scale-[1.04]" />
         ) : (
@@ -36,18 +36,26 @@ export function ProductCard({ product, onEdit, onDelete }: { product: ProductIte
           </span>
         )}
         <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#010214]/80 via-transparent to-transparent" />
-        <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={`Select ${product.title}`}
+          onClick={onToggleSelect}
+          className={cn("absolute left-2.5 top-2.5 z-10 flex size-6 items-center justify-center rounded-md border backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright", selected ? "border-transparent bg-accent text-white" : "border-white/40 bg-canvas/70 text-transparent hover:border-white")}
+        >
+          <Check className="size-4" aria-hidden />
+        </button>
+        <div className="absolute left-11 right-2.5 top-2.5 flex flex-wrap gap-1.5">
           {product.featured && <Badge tone="success" className="bg-canvas/80 backdrop-blur-md">★ Featured</Badge>}
           {product.status !== "PUBLISHED" && <Badge tone="warning" className="bg-canvas/80 backdrop-blur-md">Draft</Badge>}
           {product.isDrapeReady ? <Badge tone="success" className="bg-canvas/80 backdrop-blur-md">Try-on ready</Badge> : <Badge className="bg-canvas/80 backdrop-blur-md">Not ready</Badge>}
-        </div>
-        {(out || low) && (
-          <div className="absolute right-2.5 top-2.5">
+          {(out || low) && (
             <Badge tone={out ? "warning" : "neutral"} className="bg-canvas/80 backdrop-blur-md">
               {out ? "Out of stock" : `${product.stock} left`}
             </Badge>
-          </div>
-        )}
+          )}
+        </div>
         <p className="absolute inset-x-3 bottom-2.5 flex items-center justify-between text-[11px] tabular-nums text-white">
           <span>{formatCompactNumber(product.drapesCount ?? 0)} try-ons</span>
           <span>{formatCompactNumber(product.clicksCount ?? 0)} buy clicks</span>
@@ -58,7 +66,7 @@ export function ProductCard({ product, onEdit, onDelete }: { product: ProductIte
         <h3 className="truncate text-sm text-white">{product.title}</h3>
         <p className="mt-0.5 flex items-center justify-between text-xs">
           <span className="font-medium text-ink-soft">{product.price > 0 ? formatRupee(product.price) : "Price not set"}</span>
-          <span className="truncate pl-2 text-muted">{product.category}</span>
+          <span className="truncate pl-2 text-muted" title={product.collection ? `${product.category} · ${product.collection}` : product.category}>{product.collection ?? product.category}</span>
         </p>
 
         <div className="mt-3 flex items-center gap-2">

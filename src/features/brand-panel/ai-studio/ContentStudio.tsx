@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { cn, formatRupee } from "@/lib/utils";
 import { brandApi } from "../api";
 import { useReadyPanel } from "../BrandPanelProvider";
+import { GarmentSearch, useGarmentPicker } from "../useGarmentPicker";
 import type { ContentLanguage, ContentLength, ContentRequest, ContentResult, ContentTone, ContentType } from "../types";
 import { errorMessage } from "../useResource";
 
@@ -56,7 +57,8 @@ function seoParts(text: string) {
 
 export function ContentStudio() {
   const { token } = useAuth();
-  const { brand, products, setCredits } = useReadyPanel();
+  const { brand, setCredits } = useReadyPanel();
+  const picker = useGarmentPicker();
 
   const [type, setType] = useState<ContentType>("product_description");
   const [garmentId, setGarmentId] = useState<string | null>(null);
@@ -75,7 +77,7 @@ export function ContentStudio() {
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const meta = TYPES.find((t) => t.id === type)!;
-  const garment = products.find((p) => p.id === garmentId);
+  const garment = picker.selected && picker.selected.id === garmentId ? picker.selected : undefined;
   const canAfford = brand.aiCredits >= COST;
   const canRun = canAfford && !busy;
 
@@ -177,6 +179,7 @@ export function ContentStudio() {
 
         <section className="space-y-2.5">
           <Label>2. About</Label>
+          <GarmentSearch picker={picker} />
           <div className="no-scrollbar flex items-center gap-2.5 overflow-x-auto pb-1">
             <button
               type="button"
@@ -189,14 +192,17 @@ export function ContentStudio() {
             >
               Whole brand
             </button>
-            {products.map((p) => {
+            {picker.list.map((p) => {
               const selected = garmentId === p.id;
               return (
                 <button
                   key={p.id}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => setGarmentId(p.id)}
+                  onClick={() => {
+                    setGarmentId(p.id);
+                    picker.pick(p);
+                  }}
                   className={cn(
                     "flex shrink-0 items-center gap-2.5 rounded-xl border p-1.5 pr-3 text-left transition-colors",
                     selected ? "border-accent bg-accent/20 text-white ring-1 ring-accent" : "border-white/[0.06] bg-white/[0.02] text-muted hover:border-white/15 hover:text-white"
