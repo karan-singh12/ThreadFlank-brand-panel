@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Check, Copy, FileText, Mail, Megaphone, MessageSquareQuote, PenLine, RefreshCw, Search, Shirt, Sparkles, Tag, X, type LucideIcon } from "lucide-react";
+import { BookmarkPlus, Check, Copy, FileText, Mail, Megaphone, MessageCircle, MessageSquareQuote, PenLine, RefreshCw, Search, Shirt, Sparkles, Tag, Type, X, type LucideIcon } from "lucide-react";
 import { ActionButton, Label, Notice, Segmented } from "@/components/ui/Controls";
 import { Photo } from "@/components/ui/Photo";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -25,6 +26,8 @@ const TYPES: readonly TypeMeta[] = [
   { id: "launch_announcement", label: "Launch announcement", blurb: "For a drop or collection", limit: 1000, icon: Megaphone },
   { id: "email_blurb", label: "Email blurb", blurb: "Subject line and body", limit: 800, icon: Mail },
   { id: "seo_meta", label: "SEO title and description", blurb: "For search results", limit: 230, icon: Search },
+  { id: "whatsapp_broadcast", label: "WhatsApp broadcast", blurb: "For your customers", limit: 600, icon: MessageCircle },
+  { id: "product_title", label: "Product title", blurb: "Short and searchable", limit: 120, icon: Type },
 ];
 
 const TONES: readonly { id: ContentTone; label: string }[] = [
@@ -74,6 +77,7 @@ export function ContentStudio() {
   const [result, setResult] = useState<ContentResult | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const meta = TYPES.find((t) => t.id === type)!;
@@ -123,6 +127,7 @@ export function ContentStudio() {
     try {
       const res = await brandApi.generateContent(token, body);
       setResult(res);
+      setSaved({});
       setDrafts(Object.fromEntries(res.variants.map((v) => [v.id, v.text])));
       if (typeof res.remainingCredits === "number") setCredits(res.remainingCredits);
     } catch (e) {
@@ -141,6 +146,16 @@ export function ContentStudio() {
       copyTimer.current = setTimeout(() => setCopied(null), 1800);
     } catch {
       setError("Your browser blocked copying. Select the text and copy it by hand.");
+    }
+  };
+
+  const save = async (id: string) => {
+    if (!token || !result) return;
+    try {
+      await brandApi.saveContent(token, { contentType: result.contentType, text: drafts[id] ?? "", garmentId: result.garmentId });
+      setSaved((s) => ({ ...s, [id]: true }));
+    } catch (e) {
+      setError(errorMessage(e));
     }
   };
 
@@ -281,7 +296,14 @@ export function ContentStudio() {
           </p>
         </section>
 
-        {!canAfford && <Notice tone="info">You need at least {COST} AI credits to write copy.</Notice>}
+        {!canAfford && (
+          <Notice tone="info">
+            You need at least {COST} AI credits to write copy.{" "}
+            <Link href="/billing" className="underline">
+              Buy credits
+            </Link>
+          </Notice>
+        )}
         <ActionButton onClick={generate} loading={busy} disabled={!canRun} className="w-full">
           {!busy && <Sparkles className="size-4" aria-hidden />}
           {busy ? "Writing…" : result ? `Write new options (${COST} credits)` : `Write copy (${COST} credits)`}
@@ -323,6 +345,7 @@ export function ContentStudio() {
                     <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-accent-bright">
                       <PenLine className="size-3.5" aria-hidden /> Option {i + 1}
                     </span>
+                    <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => copy(v.id)}
@@ -331,6 +354,16 @@ export function ContentStudio() {
                       {copied === v.id ? <Check className="size-3.5 text-green" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
                       {copied === v.id ? "Copied" : "Copy"}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => save(v.id)}
+                      disabled={saved[v.id]}
+                      className="glass-pill flex h-8 items-center gap-1.5 rounded-full px-3 text-xs text-white/90 transition-[filter] hover:brightness-125 disabled:opacity-60"
+                    >
+                      {saved[v.id] ? <Check className="size-3.5 text-green" aria-hidden /> : <BookmarkPlus className="size-3.5" aria-hidden />}
+                      {saved[v.id] ? "Saved" : "Save"}
+                    </button>
+                    </div>
                   </div>
                   <textarea
                     aria-label={`Option ${i + 1} text`}

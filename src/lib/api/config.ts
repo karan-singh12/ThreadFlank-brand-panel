@@ -169,10 +169,11 @@ export const ENDPOINTS = {
     catalogFacets: "/brand/catalog/facets",
     catalogBulk: "/brand/catalog/bulk",
     catalogImport: "/brand/catalog/import",
-    analytics: { overview: "/brand/analytics/overview", trackClick: "/brand/analytics/track-click" },
+    analytics: { overview: "/brand/analytics/overview", topPieces: "/brand/analytics/top-pieces", series: "/brand/analytics/series", categories: "/brand/analytics/categories", trackClick: "/brand/analytics/track-click" },
     drops: "/brand/drops",
     bidding: { slots: "/brand/bidding/slots", bid: (rank: number) => `/brand/bidding/slots/${rank}/bid` },
-    aiStudio: { presets: "/brand/ai-studio/presets", simulate: "/brand/ai-studio/simulate", content: "/brand/ai-studio/content" },
+    billing: "/brand/billing",
+    aiStudio: { presets: "/brand/ai-studio/presets", simulate: "/brand/ai-studio/simulate", content: "/brand/ai-studio/content", library: "/brand/ai-studio/library" },
     upload: "/brand/upload/base64",
   },
   studio: {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, type ChangeEvent } from "react";
 import { CheckCircle2, Shirt, Sparkles, Upload } from "lucide-react";
 import { ActionButton, Label, Notice, Segmented } from "@/components/ui/Controls";
@@ -15,6 +16,7 @@ import { GarmentSearch, useGarmentPicker } from "../useGarmentPicker";
 import type { SimulationResult } from "../types";
 import { errorMessage, useResource } from "../useResource";
 import { ContentStudio } from "./ContentStudio";
+import { ContentLibrary } from "./ContentLibrary";
 
 /** Credits one render costs (fixed by the backend). */
 const COST = 15;
@@ -289,6 +291,7 @@ function VideoStudio() {
 
 const TABS = [
   { id: "content", label: "Write copy" },
+  { id: "library", label: "Saved copy" },
   { id: "video", label: "Motion video" },
 ] as const;
 
@@ -322,11 +325,19 @@ export function AiStudioView() {
             blurb="Product descriptions, captions, launch announcements, emails and SEO copy in your brand's voice. Written from your real catalog details only."
             actions={
               <p className="glass-pill flex h-11 items-center gap-2 rounded-full px-5 text-sm text-white tabular-nums">
-                2 credits per write · <span className="font-medium">{brand.aiCredits} available</span>
+                2 credits per write · <span className="font-medium">{brand.aiCredits} available</span> ·{" "}
+                <Link href="/billing" className="text-accent-bright hover:underline">
+                  Buy more
+                </Link>
               </p>
             }
           />
           <ContentStudio />
+        </div>
+      ) : tab === "library" ? (
+        <div className="space-y-6">
+          <BrandPageHeader eyebrow="AI Studio" title="Saved copy" blurb="Everything you saved from the writer, ready to copy again. Up to 500 items." />
+          <ContentLibrary />
         </div>
       ) : (
         <VideoStudio />

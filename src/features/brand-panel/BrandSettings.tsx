@@ -68,6 +68,7 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
   const [story, setStory] = useState(brand?.story ?? "");
   const [banner, setBanner] = useState(brand?.banner ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(brand?.websiteUrl ?? "");
+  const [gstin, setGstin] = useState(brand?.gstin ?? "");
   const [store, setStore] = useState<"online" | "flagship">(brand?.isOnlineOnly === false ? "flagship" : "online");
   const [address, setAddress] = useState(brand?.physicalStoreAddress ?? "");
   const [saving, setSaving] = useState(false);
@@ -104,6 +105,7 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
     if (!name.trim()) return setError("Enter your brand name.");
     if (!isHttpUrl(websiteUrl.trim())) return setError("Enter your website as a full link starting with https://");
     if (store === "flagship" && !address.trim()) return setError("Add your flagship store address, or switch to Online only.");
+    if (gstin.trim() && !/^[0-9A-Za-z]{15}$/.test(gstin.trim())) return setError("A GST number has 15 letters and digits, like 27AAPFU0939F1ZV.");
     if (banner.trim() && !isHttpUrl(banner.trim())) return setError("The banner image must be a full link starting with https://");
     setSaving(true);
     setError("");
@@ -114,6 +116,7 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
         story,
         banner: banner.trim(),
         websiteUrl: websiteUrl.trim(),
+        gstin: gstin.trim(),
         isOnlineOnly: store === "online",
         physicalStoreAddress: address,
       });
@@ -146,6 +149,7 @@ function SettingsForm({ onClose }: { onClose: () => void }) {
         <h3 className="text-[11px] font-medium uppercase tracking-[0.14em] text-accent-bright">Brand identity</h3>
         <Field label="Brand name" value={name} onChange={(e) => setName(e.target.value)} required />
         <TextArea label="Brand story" value={story} onChange={(e) => setStory(e.target.value)} />
+        <Field label="GST number (optional)" hint="Shoppers see a GST registered badge on your store." value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())} maxLength={15} placeholder="27AAPFU0939F1ZV" />
         <Field label="Banner image link" value={banner} onChange={(e) => setBanner(e.target.value)} placeholder="https://…" />
       </section>
 
