@@ -114,7 +114,7 @@ export const pricingContent = {
     },
     {
       q: "Who can be in my twin circle?",
-      a: `Up to ${MEMBER_LIMIT} people close to you — a partner, family or friends — each with their own selfie and body details. A look can show you and one of them together. You need their permission to add their photo.`,
+      a: `One person close to you — a partner, family member or friend — with their own selfie and body details. A look can show you and one of them together. You need their permission to add their photo.`,
     },
     {
       q: "How do I pay?",

@@ -9,7 +9,7 @@ import { ENDPOINTS } from "@/lib/api/config";
 import { BACKGROUNDS } from "@/data/studio-content";
 import { socialApi, type CircleMemberRow, type CircleState, type ProfileMemberInput } from "@/features/social/api";
 import { useLocalStore } from "./local-store";
-import { workspaceApi, type Look, type TwinInput, type TwinProfile, type WardrobeItem } from "./api";
+import { workspaceApi, type Look, type TwinGenerateInput, type TwinInput, type TwinProfile, type WardrobeItem } from "./api";
 
 /** A circle member as the UI sees it (managed profile or linked friend). */
 export type CircleMember = {
@@ -55,9 +55,11 @@ export type StudioScene = {
   isDefault?: boolean;
 };
 
-/** The image a try-on dresses: the persistent twin when there is one, else the raw photo. */
-/** The person's selfie: Drape renders them from it (face) plus their body details. */
-export const baseImage = (p?: Person) => p?.photo;
+/** The image a try-on dresses: the generated full-body twin when there is one, else the selfie (face only). */
+export const baseImage = (p?: Person) => p?.twin || p?.photo;
+
+/** True when `baseImage` is the full-body twin rather than a selfie. */
+export const hasBodyTwin = (p?: Person) => Boolean(p?.twin);
 
 export const SELF_ID = "me";
 
@@ -163,7 +165,18 @@ export function useTwin() {
     [token]
   );
 
-  return { twin, loading, save };
+  /** Builds the portrait and body twin from the selfie; the server saves them on the profile. */
+  const generate = useCallback(
+    async (input: TwinGenerateInput) => {
+      if (!token) throw new Error("Not signed in");
+      const next = await workspaceApi.generateTwin(token, input);
+      setTwin(next);
+      return next;
+    },
+    [token]
+  );
+
+  return { twin, loading, save, generate };
 }
 
 const toMember = (m: CircleMemberRow): CircleMember => ({
@@ -261,7 +274,7 @@ export function useCircle() {
   return {
     state,
     members,
-    limit: state?.circle.limit ?? 5,
+    limit: state?.circle.limit ?? 1,
     memberships: state?.memberships ?? [],
     loading,
     error,

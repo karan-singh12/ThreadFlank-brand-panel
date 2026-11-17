@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/config";
 import type { AuthUser } from "@/features/auth/types";
+import { setCreditBalance } from "@/features/billing/api";
 
 export type TwinProfile = {
   gender: string | null;
@@ -10,8 +11,22 @@ export type TwinProfile = {
   skinTone: string | null;
   hairColor: string | null;
   selfieUrl: string | null;
+  /** Generated clean portrait of the person. */
+  avatarUrl: string | null;
+  /** Generated full-body twin that Drape dresses. */
   baseAvatarUrl: string | null;
   backgroundId: string | null;
+};
+
+export type TwinGenerateInput = {
+  /** The selfie, as a data: URI (or a public URL). */
+  image: string;
+  part?: "both" | "portrait" | "body";
+  gender?: string;
+  age?: number;
+  heightCm?: number;
+  weightKg?: number;
+  skinTone?: string;
 };
 
 export type TwinInput = Partial<{ [K in keyof TwinProfile]: NonNullable<TwinProfile[K]> }>;
@@ -138,6 +153,12 @@ export const workspaceApi = {
   },
   async saveTwin(token: string, body: TwinInput) {
     return (await apiRequest<TwinProfile>(ENDPOINTS.twin, { method: "PUT", token, body })).data;
+  },
+  /** Builds the portrait and full-body twin from a selfie. The server stores both and saves them on the profile. */
+  async generateTwin(token: string, body: TwinGenerateInput) {
+    const res = await apiRequest<TwinProfile & { creditsLeft?: number }>(`${ENDPOINTS.twin}/generate`, { method: "POST", token, body, timeoutMs: 240_000 });
+    setCreditBalance(res.data.creditsLeft);
+    return res.data;
   },
 
   async listWardrobe(token: string) {
