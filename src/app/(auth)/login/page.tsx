@@ -4,7 +4,7 @@ import { GuestOnly } from "@/features/auth/guards";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { FormSkeleton } from "@/features/auth/components/FormSkeleton";
 
-export const metadata: Metadata = { title: "Log in — Threadflank" };
+export const metadata: Metadata = { title: "Log in — Threadflank", robots: { index: false } };
 
 export default function LoginPage() {
   return (

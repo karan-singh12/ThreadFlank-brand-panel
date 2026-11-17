@@ -185,7 +185,7 @@ function ProfileMenu() {
           </div>
 
           <Link
-            href="/ai-studio"
+            href="/billing"
             onClick={close}
             className="mx-1 mb-1 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm transition-colors hover:border-white/25"
           >
@@ -193,7 +193,7 @@ function ProfileMenu() {
               <Coins className="size-4 text-cyan" strokeWidth={1.75} />
               {brand ? `${brand.aiCredits} AI credits` : "AI credits"}
             </span>
-            <span className="text-xs text-accent-bright">Use</span>
+            <span className="text-xs text-accent-bright">Buy more</span>
           </Link>
 
           <div className="mt-2 flex flex-col border-t border-white/8 pt-2">

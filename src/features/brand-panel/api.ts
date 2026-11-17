@@ -20,6 +20,16 @@ import type {
   SimulationResult,
   Taxonomy,
   TeamMember,
+  TopPiece,
+  BillingOverview,
+  BillingQuote,
+  BillingOrder,
+  BillingPayment,
+  CurrentPlan,
+  SeriesDay,
+  CategoryStat,
+  SavedContent,
+  ContentType,
   WidgetInfo,
 } from "./types";
 
@@ -77,8 +87,26 @@ export const brandApi = {
     return (await apiRequest<ProductItem>(b.garment(id), { method: "PATCH", token, body: { buyUrl } })).data;
   },
 
-  async metrics(token: string, signal?: AbortSignal) {
-    return (await apiRequest<MetricSummary>(b.analytics.overview, { token, signal })).data;
+  async metrics(token: string, days: number, signal?: AbortSignal) {
+    return (await apiRequest<MetricSummary>(`${b.analytics.overview}?days=${days}`, { token, signal })).data;
+  },
+  async topPieces(token: string, days: number, signal?: AbortSignal, limit = 5) {
+    return (await apiRequest<TopPiece[]>(`${b.analytics.topPieces}?days=${days}&limit=${limit}`, { token, signal })).data;
+  },
+  async series(token: string, days: number, signal?: AbortSignal) {
+    return (await apiRequest<SeriesDay[]>(`${b.analytics.series}?days=${days}`, { token, signal })).data;
+  },
+  async categoryStats(token: string, days: number, signal?: AbortSignal) {
+    return (await apiRequest<CategoryStat[]>(`${b.analytics.categories}?days=${days}`, { token, signal })).data;
+  },
+  async library(token: string, signal?: AbortSignal) {
+    return (await apiRequest<SavedContent[]>(b.aiStudio.library, { token, signal })).data;
+  },
+  async saveContent(token: string, input: { contentType: ContentType; text: string; garmentId?: string | null }) {
+    return (await apiRequest<SavedContent>(b.aiStudio.library, { method: "POST", token, body: { contentType: input.contentType, text: input.text, ...(input.garmentId ? { garmentId: input.garmentId } : {}) } })).data;
+  },
+  async deleteSavedContent(token: string, id: string) {
+    await apiRequest(`${b.aiStudio.library}/${id}`, { method: "DELETE", token });
   },
   /** Fire-and-forget conversion ping; never blocks the shopper's click. */
   async trackBuyClick(token: string, productId: string) {
@@ -134,7 +162,25 @@ export const brandApi = {
   async team(token: string, signal?: AbortSignal) {
     return (await apiRequest<TeamMember[]>(b.team, { token, signal })).data;
   },
-  async inviteMember(token: string, input: { name: string; email: string }) {
+  async billing(token: string, signal?: AbortSignal) {
+    return (await apiRequest<BillingOverview>(b.billing, { token, signal })).data;
+  },
+  async billingQuote(token: string, packId: string, code?: string) {
+    return (await apiRequest<BillingQuote>(`${b.billing}/quote`, { method: "POST", token, body: { packId, ...(code ? { code } : {}) } })).data;
+  },
+  async billingOrder(token: string, packId: string, code?: string) {
+    return (await apiRequest<BillingOrder>(`${b.billing}/order`, { method: "POST", token, body: { packId, ...(code ? { code } : {}) } })).data;
+  },
+  async billingVerify(token: string, body: { orderId: string; paymentId: string; signature: string }) {
+    return (await apiRequest<{ credits: number; balance: number; plan?: CurrentPlan }>(`${b.billing}/verify`, { method: "POST", token, body })).data;
+  },
+  async billingPayments(token: string, signal?: AbortSignal) {
+    return (await apiRequest<BillingPayment[]>(`${b.billing}/payments`, { token, signal })).data;
+  },
+  async setMemberRole(token: string, id: string, role: "MANAGER" | "VIEWER") {
+    return (await apiRequest<{ id: string; role: "MANAGER" | "VIEWER" }>(`${b.team}/${id}/role`, { method: "PATCH", token, body: { role } })).data;
+  },
+  async inviteMember(token: string, input: { name: string; email: string; role?: "MANAGER" | "VIEWER" }) {
     return (await apiRequest<TeamMember>(`${b.team}/invite`, { method: "POST", token, body: input })).data;
   },
   async resendInvite(token: string, id: string) {

@@ -11,6 +11,7 @@ import { writeSession } from "@/features/auth/storage";
 import type { AuthUser } from "@/features/auth/types";
 import { workspaceApi, type TwinProfile } from "@/features/workspace/api";
 import { errorMessage, useCircle, useScenePreference, useScenes, useTwin, useUserProfile } from "@/features/workspace/hooks";
+import { toDataUrl } from "@/features/drape/tryon";
 import { assetUrl } from "@/lib/api/config";
 import { cn } from "@/lib/utils";
 import { profileContent as copy } from "@/data/studio-content";
@@ -140,13 +141,24 @@ export function ProfileView() {
 // ─── My twin ─────────────────────────────────────────────────────────────────
 
 function TwinTab() {
-  const { twin, loading, save } = useTwin();
+  const { twin, loading, save, generate } = useTwin();
   if (loading) return <Loading />;
-  return <TwinEditor initial={twin} save={save} />;
+  return <TwinEditor initial={twin} save={save} generate={generate} />;
 }
 
-function TwinEditor({ initial, save }: { initial: TwinProfile | null; save: ReturnType<typeof useTwin>["save"] }) {
+function TwinEditor({
+  initial,
+  save,
+  generate,
+}: {
+  initial: TwinProfile | null;
+  save: ReturnType<typeof useTwin>["save"];
+  generate: ReturnType<typeof useTwin>["generate"];
+}) {
   const [body, setBody] = useState<BodyValues>(() => twinToBody(initial));
+  // The generated twin: a clean portrait and the full-body photo Drape dresses.
+  const [built, setBuilt] = useState({ portrait: initial?.avatarUrl ?? "", body: initial?.baseAvatarUrl ?? "" });
+  const [building, setBuilding] = useState(false);
   const scenes = useScenes();
   const [sceneId, chooseScene] = useScenePreference();
   const [saving, setSaving] = useState(false);
@@ -154,13 +166,41 @@ function TwinEditor({ initial, save }: { initial: TwinProfile | null; save: Retu
   const scene = scenes.find((b) => b.id === sceneId) ?? scenes.find((b) => b.isDefault) ?? scenes[0];
 
   // A new selfie is saved straight away, so it's never lost and Drape can use it at once.
-  // Saving it also clears any old AI twin, which is no longer used.
+  // It also clears the old twin, which was built from the previous face.
   const changeBody = (next: BodyValues) => {
     setBody(next);
     if (next.photo !== body.photo) {
-      save({ selfieUrl: next.photo, baseAvatarUrl: "" })
+      setBuilt({ portrait: "", body: "" });
+      save({ selfieUrl: next.photo, avatarUrl: "", baseAvatarUrl: "" })
         .then(() => setNotice({ tone: "success", text: copy.saved }))
         .catch((e) => setNotice({ tone: "error", text: errorMessage(e) }));
+    }
+  };
+
+  // Builds the portrait and full-body twin from the selfie. The server stores both and saves them on the profile.
+  const build = async () => {
+    if (!body.photo) {
+      setNotice({ tone: "error", text: copy.generate.needSelfie });
+      return;
+    }
+    setBuilding(true);
+    setNotice(null);
+    try {
+      const next = await generate({
+        image: await toDataUrl(body.photo, 1280),
+        part: "both",
+        gender: body.gender || undefined,
+        age: toNumber(body.age),
+        heightCm: toNumber(body.heightCm),
+        weightKg: toNumber(body.weightKg),
+        skinTone: body.skinTone || undefined,
+      });
+      setBuilt({ portrait: next.avatarUrl ?? "", body: next.baseAvatarUrl ?? "" });
+      setNotice({ tone: "success", text: copy.generate.done });
+    } catch (e) {
+      setNotice({ tone: "error", text: errorMessage(e) });
+    } finally {
+      setBuilding(false);
     }
   };
 
@@ -176,7 +216,6 @@ function TwinEditor({ initial, save }: { initial: TwinProfile | null; save: Retu
         skinTone: body.skinTone || undefined,
         // An empty string clears a removed selfie.
         selfieUrl: body.photo,
-        baseAvatarUrl: "",
       });
       setNotice({ tone: "success", text: copy.saved });
     } catch (e) {
@@ -193,6 +232,16 @@ function TwinEditor({ initial, save }: { initial: TwinProfile | null; save: Retu
         <p className="mt-1 text-sm text-muted">{copy.twinDescription}</p>
         <div className="mt-6">
           <BodyForm value={body} onChange={changeBody} />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <ActionButton loading={building} disabled={saving || !body.photo} onClick={build}>
+              <Sparkles className="size-4" />
+              {built.body ? copy.generate.redo : copy.generate.action}
+            </ActionButton>
+            <p className="min-w-0 flex-1 text-xs text-muted">{building ? copy.generate.working : body.photo ? (built.body ? copy.generate.costRedo : copy.generate.costFirst) : copy.generate.needSelfie}</p>
+          </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-2">
@@ -227,12 +276,32 @@ function TwinEditor({ initial, save }: { initial: TwinProfile | null; save: Retu
 
       <aside className="flex flex-col gap-3 lg:sticky lg:top-24 lg:h-fit">
         <div className="relative aspect-[3/4] overflow-hidden rounded-(--radius-panel) border border-white/10" style={{ background: scene?.cssGradient || "#1a1838" }}>
-          {body.photo ? (
-            <Photo src={body.photo} alt="Your selfie" fit="contain" />
+          {built.body || body.photo ? (
+            <Photo src={built.body || body.photo} alt={built.body ? "Your full-body twin" : "Your selfie"} fit="contain" />
           ) : (
             <div className="flex size-full items-center justify-center text-sm text-white/70">{copy.twinMissing}</div>
           )}
+          {building && (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <LoaderCircle className="size-7 animate-spin text-white" />
+            </span>
+          )}
         </div>
+        {built.portrait && built.body && (
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { src: built.portrait, label: copy.generate.portrait },
+              { src: built.body, label: copy.generate.body },
+            ].map((t) => (
+              <figure key={t.label} className="flex flex-col gap-1">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-white/10" style={{ background: scene?.cssGradient || "#1a1838" }}>
+                  <Photo src={t.src} alt={t.label} fit="contain" />
+                </div>
+                <figcaption className="text-center text-[11px] text-muted">{t.label}</figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
         <p className="text-center text-sm text-muted">{bodySummary({ age: toNumber(body.age), heightCm: toNumber(body.heightCm), weightKg: toNumber(body.weightKg), skinTone: body.skinTone }) || "—"}</p>
         <Link href="/drape?person=me" className="btn-light flex h-11 items-center justify-center gap-2 rounded-full text-sm font-medium">
           <Shirt className="size-4" />

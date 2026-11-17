@@ -1,6 +1,6 @@
 import { API_BASE_URL, assetUrl } from "@/lib/api/config";
 import { getSessionSnapshot } from "@/features/auth/storage";
-import { baseImage, type Person, type StudioScene } from "@/features/workspace/hooks";
+import { baseImage, hasBodyTwin, type Person, type StudioScene } from "@/features/workspace/hooks";
 import { skinLabel } from "@/features/profile/BodyForm";
 import { ETHNIC_GARMENTS } from "@/data/garment-kinds";
 import { DRAPE_SLOTS, GROUP_POSTURES, type DrapeSlot, type GroupPosture } from "@/data/studio-content";
@@ -99,6 +99,7 @@ export async function buildGroupPayload({ people, members, posture, scene, styli
         name: (p.isSelf ? p.name || "You" : p.name).slice(0, 60),
         relation: p.isSelf ? "You" : p.relation || undefined,
         twinImage: await sendable(baseImage(p)!, 1280),
+        bodyTwin: hasBodyTwin(p) || undefined,
         body: {
           gender: p.gender || undefined,
           age: p.age || undefined,

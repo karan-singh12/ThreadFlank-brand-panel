@@ -17,6 +17,8 @@ export type BrandProfile = {
   isOnlineOnly?: boolean;
   followersCount: number;
   aiCredits: number;
+  /** GST number as saved (format-checked only). */
+  gstin?: string;
   currentRank: number;
   totalBrands: number;
   rankScore: number;
@@ -25,19 +27,22 @@ export type BrandProfile = {
 
 /** Editable subset: the backend rejects any other field. */
 export type BrandProfileUpdate = Partial<
-  Pick<BrandProfile, "name" | "story" | "logo" | "banner" | "themeAccent" | "announcementText" | "websiteUrl" | "physicalStoreAddress" | "isOnlineOnly">
+  Pick<BrandProfile, "name" | "story" | "logo" | "banner" | "themeAccent" | "announcementText" | "websiteUrl" | "physicalStoreAddress" | "isOnlineOnly" | "gstin">
 >;
 
 /** `changePct` is null until the backend has a previous period to compare with. */
 export type Metric = { total: number; changePct: number | null };
 
 export type MetricSummary = {
+  /** How many days the numbers cover; the change compares with the same length before. */
+  periodDays?: number;
   storeViews: Metric;
   totalDrapes: Metric;
   saves: Metric;
   shares: Metric;
   clickOuts: Metric;
   conversionRate: Metric;
+  newFollowers?: Metric;
 };
 
 export type ProductItem = {
@@ -93,6 +98,25 @@ export type CreateGarmentInput = {
   description?: string;
   status?: "DRAFT" | "PUBLISHED";
 };
+
+/** A piece shoppers reached for in the period, with what they did with it. */
+export type TopPiece = { id: string; title: string; sku: string; image: string; price: number; drapes: number; saves: number; shares: number; clicks: number; views: number; score: number };
+
+/** One day of shopper activity. */
+export type SeriesDay = { date: string; views: number; drapes: number; saves: number; shares: number; clicks: number };
+/** Shopper activity for one piece category. */
+export type CategoryStat = { category: string; views: number; drapes: number; saves: number; shares: number; clicks: number };
+/** Copy kept from the AI writer. */
+export type SavedContent = { id: string; contentType: ContentType; title: string; body: string; garmentId: string | null; createdAt: string };
+
+export type BillingPack = { id: string; name: string; credits: number; price: number; perCredit: number; blurb: string; featured: boolean };
+export type PlanLimits = { garments: number; drops: number; team: number };
+export type BillingPlan = { id: "FREE" | "GROWTH" | "PRO"; /** What to send when buying it. */ orderId: string; name: string; price: number; credits: number; limits: PlanLimits; blurb: string; days: number; featured: boolean };
+export type CurrentPlan = { id: BillingPlan["id"]; name: string; until: string | null; limits: PlanLimits; usage: PlanLimits };
+export type BillingOverview = { paymentsEnabled: boolean; credits: number; gstin: string; gstNote: string; packs: BillingPack[]; plan: CurrentPlan; plans: BillingPlan[] };
+export type BillingQuote = { packId: string; code: string | null; percentOff: number; bonusCredits: number; price: number; originalPrice: number; credits: number };
+export type BillingOrder = { orderId: string; amount: number; currency: string; keyId: string; credits: number; pack: { id: string; name: string; credits: number } };
+export type BillingPayment = { id: string; pack: string; credits: number; amount: number; coupon: string | null; status: "CREATED" | "PAID" | "FAILED"; paidAt: string | null; createdAt: string };
 
 export type CatalogSort = "newest" | "oldest" | "price_low" | "price_high" | "popular" | "stock_low";
 
@@ -204,7 +228,7 @@ export type SimulationResult = {
   createdAt: string;
 };
 
-export type ContentType = "product_description" | "instagram_caption" | "launch_announcement" | "email_blurb" | "seo_meta";
+export type ContentType = "product_description" | "instagram_caption" | "launch_announcement" | "email_blurb" | "seo_meta" | "whatsapp_broadcast" | "product_title";
 export type ContentTone = "luxe" | "playful" | "minimal" | "festive" | "bold";
 export type ContentLanguage = "english" | "hindi" | "hinglish";
 export type ContentLength = "short" | "medium" | "long";
@@ -242,7 +266,7 @@ export type TeamMember = {
   id: string;
   name: string;
   email: string;
-  role: "OWNER" | "MANAGER";
+  role: "OWNER" | "MANAGER" | "VIEWER";
   isActive: boolean;
   pending: boolean;
   lastLoginAt: string | null;

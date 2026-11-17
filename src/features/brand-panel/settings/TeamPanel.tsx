@@ -18,6 +18,7 @@ export function TeamPanel() {
   const team = useResource(load);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"MANAGER" | "VIEWER">("MANAGER");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -37,7 +38,7 @@ export function TeamPanel() {
     setError("");
     setNotice("");
     try {
-      const member = await brandApi.inviteMember(token, { name: name.trim(), email: email.trim() });
+      const member = await brandApi.inviteMember(token, { name: name.trim(), email: email.trim(), role });
       team.setData((prev) => [...(prev ?? []), member]);
       setNotice(`We emailed ${member.email} a link to set their password.`);
       setName("");
@@ -57,6 +58,22 @@ export function TeamPanel() {
     try {
       const res = await brandApi.setMemberActive(token, m.id, !m.isActive);
       team.setData((prev) => (prev ?? []).map((x) => (x.id === m.id ? { ...x, isActive: res.isActive } : x)));
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const changeRole = async (m: TeamMember, next: "MANAGER" | "VIEWER") => {
+    if (!token || m.role === next) return;
+    setBusy(m.id);
+    setError("");
+    setNotice("");
+    try {
+      await brandApi.setMemberRole(token, m.id, next);
+      team.setData((prev) => (prev ?? []).map((x) => (x.id === m.id ? { ...x, role: next } : x)));
+      setNotice(`${m.name} is now ${next === "VIEWER" ? "a viewer" : "a manager"}. They sign in again to get it.`);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -93,13 +110,23 @@ export function TeamPanel() {
               </p>
               <p className="truncate text-xs text-muted">{m.email}</p>
               <div className="mt-1 flex flex-wrap gap-1.5">
-                <Badge>{m.role === "OWNER" ? "Owner" : "Manager"}</Badge>
+                <Badge>{m.role === "OWNER" ? "Owner" : m.role === "VIEWER" ? "Viewer" : "Manager"}</Badge>
                 {m.pending && <Badge tone="warning">Invitation pending</Badge>}
                 {!m.isActive && <Badge tone="warning">Disabled</Badge>}
               </div>
             </div>
             {isOwner && m.role !== "OWNER" && (
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 items-center gap-2">
+                <select
+                  aria-label={`Role for ${m.name}`}
+                  value={m.role}
+                  disabled={busy === m.id}
+                  onChange={(e) => changeRole(m, e.target.value as "MANAGER" | "VIEWER")}
+                  className="h-9 rounded-full bg-white/5 px-3 text-xs text-white outline-none ring-1 ring-white/10"
+                >
+                  <option value="MANAGER">Manager</option>
+                  <option value="VIEWER">Viewer</option>
+                </select>
                 {m.pending && (
                   <ActionButton variant="ghost" className="h-9 px-3 text-xs" loading={busy === m.id} onClick={() => resend(m)}>
                     Resend
@@ -120,6 +147,15 @@ export function TeamPanel() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Asha Verma" />
             <Field label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="asha@yourbrand.com" />
+          </div>
+          <div>
+            <label htmlFor="invite-role" className="mb-1.5 block text-xs text-muted">
+              Access
+            </label>
+            <select id="invite-role" value={role} onChange={(e) => setRole(e.target.value as "MANAGER" | "VIEWER")} className="h-11 w-full rounded-xl bg-white/5 px-3 text-sm text-white outline-none ring-1 ring-white/10 sm:w-auto">
+              <option value="MANAGER">Manager: everything except billing and the team</option>
+              <option value="VIEWER">Viewer: can look but not change anything</option>
+            </select>
           </div>
           <ActionButton type="submit" loading={busy === "invite"}>
             <MailPlus className="size-4" aria-hidden /> Send invitation

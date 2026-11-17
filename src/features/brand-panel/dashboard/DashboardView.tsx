@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Award, BarChart3, Layers, Rocket, Shirt, ShieldCheck, Video } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -8,6 +9,7 @@ import { EmptyState, ErrorState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Photo } from "@/components/ui/Photo";
 import { Button } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Controls";
 import { cn, formatCompactNumber, formatRupee } from "@/lib/utils";
 import { brandApi } from "../api";
 import { BrandAvatar } from "../BrandAvatar";
@@ -16,7 +18,6 @@ import { useReadyPanel } from "../BrandPanelProvider";
 import type { Metric, ProductItem } from "../types";
 import { useResource } from "../useResource";
 
-const loadMetrics = brandApi.metrics;
 const loadTop = (token: string, signal: AbortSignal) => brandApi.catalogPage(token, { sort: "popular" }, { limit: 4, signal }).then((p) => p.items);
 
 const ACTIONS = [
@@ -31,6 +32,8 @@ const show = (n: number | null, fmt: (v: number) => string = (v) => v.toLocaleSt
 
 export function DashboardView() {
   const { brand, products, facets } = useReadyPanel();
+  const [days, setDays] = useState(30);
+  const loadMetrics = useCallback((token: string, signal: AbortSignal) => brandApi.metrics(token, days, signal), [days]);
   const metrics = useResource(loadMetrics);
   const m = metrics.data;
 
@@ -108,7 +111,22 @@ export function DashboardView() {
       </section>
 
       <section aria-label="Performance" className="space-y-4">
-        <SectionHeader title="Performance" hint="Change is versus the previous period." />
+        <SectionHeader
+          title="Performance"
+          hint={`Last ${days} days. Change is versus the ${days} days before.`}
+          action={
+            <Segmented
+              label="Period"
+              value={String(days)}
+              onChange={(v) => setDays(Number(v))}
+              options={[
+                { id: "7", label: "7 days" },
+                { id: "30", label: "30 days" },
+                { id: "90", label: "90 days" },
+              ]}
+            />
+          }
+        />
         {metrics.status === "loading" ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" aria-busy>
             {Array.from({ length: 5 }, (_, i) => (
@@ -119,12 +137,13 @@ export function DashboardView() {
           <ErrorState message={metrics.error} onRetry={metrics.reload} className="py-8" />
         ) : hasActivity ? (
           <>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
               <StatCard label="Store views" value={show(views, formatCompactNumber)} change={m.storeViews?.changePct} hint="Showroom visits" />
               <StatCard label="Try-ons" value={show(drapes, formatCompactNumber)} change={m.totalDrapes?.changePct} hint="Draped on shoppers" />
               <StatCard label="Saves" value={show(saves, formatCompactNumber)} change={m.saves?.changePct} hint="Added to closets" />
               <StatCard label="Buy clicks" value={show(clicks, formatCompactNumber)} change={m.clickOuts?.changePct} hint="To your website" />
               <StatCard label="Conversion" value={show(conversion, (v) => `${v}%`)} change={m.conversionRate?.changePct} hint="Try-on to buy click" />
+              <StatCard label="New followers" value={show(total(m?.newFollowers), formatCompactNumber)} change={m.newFollowers?.changePct} hint="Hear about your drops" />
             </div>
             <Funnel
               stages={[
@@ -147,7 +166,7 @@ export function DashboardView() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         <Occasions products={products} />
-        <TopGarments total={totalPieces} />
+        <TopGarments total={totalPieces} days={days} />
       </div>
     </div>
   );
@@ -217,15 +236,21 @@ function Occasions({ products }: { products: ProductItem[] }) {
   );
 }
 
-function TopGarments({ total }: { total: number }) {
-  // Ranked by the server across the whole catalog, not just the pieces already loaded here.
-  const topList = useResource(loadTop);
-  const top = topList.data ?? [];
+function TopGarments({ total, days }: { total: number; days: number }) {
+  // Ranked by the server across the whole catalog. Shopper activity in the period comes first; a brand
+  // with no activity yet sees its most tried-on pieces overall instead.
+  const loadActive = useCallback((token: string, signal: AbortSignal) => brandApi.topPieces(token, days, signal), [days]);
+  const active = useResource(loadActive);
+  const fallback = useResource(loadTop);
+  const hasActive = (active.data?.length ?? 0) > 0;
+  const top = hasActive
+    ? active.data!.map((p) => ({ id: p.id, title: p.title, price: p.price, image: p.image, tryOns: p.drapes, saves: p.saves }))
+    : (fallback.data ?? []).map((p) => ({ id: p.id, title: p.title, price: p.price, image: p.images?.[0] ?? "", tryOns: p.drapesCount ?? 0, saves: 0 }));
   return (
     <Card className="space-y-4">
       <SectionHeader
         title="Top garments"
-        hint="Most tried on"
+        hint={hasActive ? `Last ${days} days · try-ons, saves, shares and buy clicks` : "Most tried on"}
         action={
           total > 0 ? (
             <Link href="/catalog" className="flex h-9 items-center gap-1 text-xs text-accent-bright hover:text-white">
@@ -242,9 +267,9 @@ function TopGarments({ total }: { total: number }) {
             <li key={p.id}>
               <Link href="/catalog" className="group block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright">
                 <span className={cn("relative block aspect-[3/4] overflow-hidden rounded-(--radius-card) bg-[#0b0c22] ring-1 ring-white/10 transition-transform duration-300 group-hover:-translate-y-1")}>
-                  {p.images?.[0] ? <Photo src={p.images[0]} alt={p.title} className="object-top" /> : <Shirt className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 text-muted" aria-hidden />}
+                  {p.image ? <Photo src={p.image} alt={p.title} className="object-top" /> : <Shirt className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 text-muted" aria-hidden />}
                   <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#010214]/90 via-transparent to-transparent" />
-                  <span className="absolute inset-x-2 bottom-2 text-[11px] tabular-nums text-white">{formatCompactNumber(p.drapesCount ?? 0)} try-ons</span>
+                  <span className="absolute inset-x-2 bottom-2 text-[11px] tabular-nums text-white">{formatCompactNumber(p.tryOns)} try-ons{p.saves > 0 ? ` · ${formatCompactNumber(p.saves)} saves` : ""}</span>
                 </span>
                 <span className="mt-2 block truncate text-sm text-white">{p.title}</span>
                 <span className="block text-xs text-muted">{p.price ? formatRupee(p.price) : "Price not set"}</span>

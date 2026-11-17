@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import Link from "next/link";
 import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +140,23 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "error" | 
         tone === "info" && "border-white/10 bg-white/[0.04] text-subtle"
       )}
     >
-      {children}
+      {withUpgradeLink(children)}
     </p>
+  );
+}
+
+const UPGRADE = "Upgrade in Billing.";
+
+/** A plan-limit message ends with "Upgrade in Billing."; make that a link to the Billing page. */
+function withUpgradeLink(children: ReactNode) {
+  if (typeof children !== "string" || !children.endsWith(UPGRADE)) return children;
+  return (
+    <>
+      {children.slice(0, -UPGRADE.length)}
+      <Link href="/billing" className="font-medium text-white underline underline-offset-2">
+        Upgrade in Billing
+      </Link>
+      .
+    </>
   );
 }
