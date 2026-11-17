@@ -26,6 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: "See this look and try it on your own twin.",
     openGraph: { title, description: "See this look and try it on your own twin.", images: [{ url: image, width: 1200, height: 630 }] },
     twitter: { card: "summary_large_image", title, images: [image] },
+    robots: { index: false, follow: true },
   };
 }
 
