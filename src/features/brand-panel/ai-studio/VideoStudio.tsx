@@ -2,263 +2,177 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { AlertTriangle, CheckCircle2, Clapperboard, Download, Film, Link2, LoaderCircle, Play, RotateCcw, Shirt, Sparkles, Trash2, Upload } from "lucide-react";
-import { ActionButton, Label, Notice, Segmented } from "@/components/ui/Controls";
+import { AlertTriangle, Clapperboard, Download, GripVertical, Link2, Play, Plus, Shirt, Sparkles, Trash2, Wand2, X } from "lucide-react";
+import { ActionButton, Label, Notice } from "@/components/ui/Controls";
 import { ErrorState } from "@/components/ui/EmptyState";
 import { Photo } from "@/components/ui/Photo";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { assetUrl } from "@/lib/api/config";
-import { cn } from "@/lib/utils";
+import { cn, formatRupee } from "@/lib/utils";
 import { brandApi } from "../api";
 import { BrandPageHeader } from "../BrandPageHeader";
 import { useReadyPanel } from "../BrandPanelProvider";
-import type { BrandVideo, MotionPreset } from "../types";
+import type { BrandReel, MotionPreset, ProductItem, ReelShotInput } from "../types";
 import { GarmentSearch, useGarmentPicker } from "../useGarmentPicker";
 import { errorMessage, useResource } from "../useResource";
+import { AVATARS, AvatarFigure, AvatarTile, MODEL_POSES, avatarById, type PoseId } from "./avatars";
+import { MAX_UPLOAD_MB, MotionTile, readAsDataUrl } from "./motion";
 
-const MAX_UPLOAD_MB = 8;
-/** How often the studio checks on renders in progress. */
-const POLL_MS = 6000;
-const RATIO_LABEL: Record<string, string> = { "9:16": "9:16 · Reels & Stories", "16:9": "16:9 · Banner & YouTube" };
+const POLL_MS = 8000;
+
+const loadStyles = brandApi.reelStyles;
+const loadStatus = brandApi.reelStatus;
+const loadReels = brandApi.reels;
 const loadPresets = brandApi.presets;
-const loadStatus = brandApi.videoStatus;
-const loadVideos = brandApi.videos;
 
-const readAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-
-const aspectClass = (ratio: string) => (ratio === "16:9" ? "aspect-video" : ratio === "1:1" ? "aspect-square" : "aspect-[9/16]");
-
-// ─── Motion looks, drawn rather than described ───────────────────────────────
-// Presets come from the backend and their wording changes, so the preview is read from the
-// words themselves (camera move + lighting) instead of a fixed list of ids.
-
-const STAGE_ANIM: Record<string, string> = {
-  orbit: "stage-sway",
-  dolly: "stage-dolly",
-  track: "stage-track",
-  turn: "stage-turn",
-  sway: "stage-sway",
+/** One shot the brand has lined up: the piece, who wears it, and how the camera moves. */
+type Shot = {
+  key: string;
+  product?: ProductItem;
+  upload?: { dataUrl: string; name: string };
+  /** null = the garment photo as it is, no model. */
+  avatarId: string | null;
+  /** null = the style picks the move for this shot. */
+  presetId: string | null;
+  pose: PoseId;
 };
 
-/** "Cinematic Dolly-In (0.5x)" → dolly, "Full 360 Swivel" → orbit, and so on. */
-function cameraKind(text: string) {
-  const t = text.toLowerCase();
-  if (/orbit|arc|swivel|360|revolv/.test(t)) return "orbit";
-  if (/dolly|push|zoom|crane/.test(t)) return "dolly";
-  if (/track|pan|walk|stride|follow|travel/.test(t)) return "track";
-  if (/turn|spin|twirl|pirouette/.test(t)) return "turn";
-  return "sway";
-}
+const shotImage = (s: Shot) => s.upload?.dataUrl ?? s.product?.images?.[0] ?? "";
+const shotLabel = (s: Shot) => s.product?.title ?? s.upload?.name.replace(/\.[^.]+$/, "") ?? "";
 
-/** The lighting line becomes the tile's actual light: a colour wash and a key-light glow. */
-function lightingTheme(text: string) {
-  const t = text.toLowerCase();
-  if (/chiaroscuro|low.?key|moody|nocturne|night|shadow play/.test(t)) return { wash: "#2b2442", base: "#100e1e", key: "#b9a6ff" };
-  if (/tungsten|warm|golden|festive|amber|candle|sunset|3200/.test(t)) return { wash: "#4d2b16", base: "#1b1012", key: "#ffc98a" };
-  if (/daylight|natural|crisp|cool|overcast|5600|clean/.test(t)) return { wash: "#1d3550", base: "#0b1322", key: "#bcd9ff" };
-  return { wash: "#2f3142", base: "#14151f", key: "#eef0ff" };
-}
-
-/** An abstract garment-on-figure silhouette: enough to read as a person wearing a piece. */
-function StageFigure({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 64" className={className} fill="currentColor" aria-hidden>
-      <circle cx="20" cy="9" r="5.1" />
-      <path d="M12.4 16.6 L20 14.6 L27.6 16.6 L31 27 L26.8 28.2 L29.6 48.6 Q20 52.4 10.4 48.6 L13.2 28.2 L9 27 Z" />
-    </svg>
-  );
-}
-
-/** One motion look: its light, its camera move and its name. No paragraph. */
-function MotionTile({ preset, selected, onSelect }: { preset: MotionPreset; selected: boolean; onSelect: () => void }) {
-  const kind = cameraKind(`${preset.cameraMovement} ${preset.name}`);
-  const theme = lightingTheme(preset.lighting);
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onSelect}
-      title={preset.description}
-      className={cn(
-        "group relative overflow-hidden rounded-2xl text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright",
-        selected ? "stage-on ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25"
-      )}
-    >
-      <div
-        className="relative aspect-[4/3] overflow-hidden"
-        style={{ background: `radial-gradient(ellipse at 50% 18%, ${theme.wash} 0%, ${theme.base} 72%)` }}
-      >
-        {/* The key light named in the preset. */}
-        <span aria-hidden className="absolute left-1/2 top-[-18%] size-[70%] -translate-x-1/2 rounded-full blur-2xl opacity-45" style={{ background: theme.key }} />
-
-        {/* An orbiting camera gets a ring that actually goes round. */}
-        {kind === "orbit" && (
-          <span aria-hidden className="stage-ring absolute left-1/2 top-[58%] size-[78%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-dashed opacity-50" style={{ borderColor: theme.key, transform: "rotateX(68deg)" }} />
-        )}
-        {/* A tracking move gets speed lines it slides against. */}
-        {kind === "track" && (
-          <span aria-hidden className="absolute inset-x-0 top-1/2 flex flex-col gap-2 opacity-25">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="block h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${theme.key}, transparent)` }} />
-            ))}
-          </span>
-        )}
-        {/* A dolly-in gets a frame closing on the subject. */}
-        {kind === "dolly" && <span aria-hidden className="stage-figure absolute inset-[18%] rounded-lg border opacity-40" style={{ borderColor: theme.key, ["--stage-anim" as string]: "stage-dolly", ["--stage-dur" as string]: "5s" }} />}
-
-        <span
-          aria-hidden
-          className="stage-figure absolute bottom-[12%] left-1/2 h-[64%] -translate-x-1/2"
-          style={{ ["--stage-anim" as string]: STAGE_ANIM[kind], ["--stage-dur" as string]: kind === "turn" ? "6s" : "4.5s" }}
-        >
-          <StageFigure className="h-full w-auto text-white/85 drop-shadow-[0_6px_14px_rgba(0,0,0,0.6)]" />
-        </span>
-
-        {/* Floor, so the figure stands rather than floats. */}
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[16%]" style={{ background: `linear-gradient(180deg, transparent, ${theme.base})` }} />
-
-        <span className="absolute left-2 top-2 rounded-full bg-black/45 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.1em] text-white/80 backdrop-blur">
-          {preset.badge}
-        </span>
-        {selected && (
-          <span className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-white text-[#0b0b1e]">
-            <CheckCircle2 className="size-3.5" aria-hidden />
-          </span>
-        )}
-      </div>
-      <span className={cn("block px-3 py-2.5 text-xs font-medium transition-colors", selected ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>
-        {preset.name}
-      </span>
-    </button>
-  );
-}
-
-/** What the render is doing, from how long it has been going (engines don't report real progress). */
-function stage(seconds: number) {
-  if (seconds < 15) return "Sending your photo to the studio";
-  if (seconds < 60) return "Directing the camera and the motion";
-  if (seconds < 150) return "Rendering the frames";
-  return "Finishing touches. Long renders can take a few minutes";
-}
-
-function useElapsed(since: string | null) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!since) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [since]);
-  return since ? Math.max(0, Math.round((now - new Date(since).getTime()) / 1000)) : 0;
-}
-
-const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
-/** AI motion videos: pick a garment and a look, render in the background, keep every clip. */
+/** Video: several outfits, your own models and moves, one reel ready to post. */
 export function VideoStudio() {
   const { token } = useAuth();
   const { brand, products, setCredits } = useReadyPanel();
   const picker = useGarmentPicker();
-  const presets = useResource(loadPresets);
+  const styles = useResource(loadStyles);
   const status = useResource(loadStatus);
-  const videos = useResource(loadVideos);
+  const reels = useResource(loadReels);
+  const presets = useResource(loadPresets);
 
-  const [productId, setProductId] = useState<string | null>(null);
-  const [custom, setCustom] = useState<{ dataUrl: string; name: string } | null>(null);
-  const [presetId, setPresetId] = useState<string | null>(null);
-  const [ratio, setRatio] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState("");
+  const [shots, setShots] = useState<Shot[]>([]);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [styleId, setStyleId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const cfg = status.data;
-  const cost = cfg?.cost ?? 15;
-  const ratios = cfg?.aspectRatios ?? [];
-  const activeRatio = ratio && ratios.includes(ratio) ? ratio : ratios[0] ?? "9:16";
-  const activeProduct = (picker.selected && picker.selected.id === productId ? picker.selected : undefined) ?? (custom ? undefined : products[0]);
-  const activeImage = custom?.dataUrl ?? activeProduct?.images?.[0] ?? "";
-  const list = presets.data ?? [];
-  const activePreset = list.find((p) => p.id === presetId) ?? list[0];
-  const { data: videoData } = videos;
-  const all = useMemo(() => videoData ?? [], [videoData]);
-  const rendering = all.filter((v) => v.status === "RENDERING");
+  const cost = cfg?.cost ?? 60;
+  const minShots = cfg?.minShots ?? 3;
+  const maxShots = cfg?.maxShots ?? 5;
+  const shotSeconds = cfg?.shotSeconds ?? 8;
+  const styleList = useMemo(() => styles.data ?? [], [styles.data]);
+  const style = styleList.find((s) => s.id === styleId) ?? styleList[0];
+  const presetList = useMemo(() => presets.data ?? [], [presets.data]);
+  const { data: reelData } = reels;
+  const all = useMemo(() => reelData ?? [], [reelData]);
+  const busyReel = all.find((r) => r.status === "RENDERING" || r.status === "COMPOSING");
+  const open = all.find((r) => r.id === openId) ?? null;
+  const shot = shots.find((s) => s.key === editing) ?? null;
+
+  const enough = shots.length >= minShots;
   const canAfford = brand.aiCredits >= cost;
-  const canRun = Boolean(cfg?.available && activeImage && activePreset && canAfford && !starting && rendering.length < 2);
-  const active = all.find((v) => v.id === activeId) ?? null;
+  const canRun = Boolean(cfg?.available && enough && canAfford && !starting && !busyReel);
+  const runtime = style ? style.introSec + style.outroSec + shots.length * shotSeconds : 0;
 
-  // Renders finish in the background: while any is going, re-list every few seconds (listing also
-  // checks on them). A render that fails gives its credits back, so add them to the balance shown.
-  const seen = useRef(new Map<string, BrandVideo["status"]>());
-  const creditsRef = useRef(brand.aiCredits);
-  useEffect(() => {
-    creditsRef.current = brand.aiCredits;
-  });
-  useEffect(() => {
-    for (const v of all) {
-      const before = seen.current.get(v.id);
-      if (before === "RENDERING" && v.status === "FAILED" && v.refunded) setCredits(creditsRef.current + v.credits);
-      seen.current.set(v.id, v.status);
-    }
-  }, [all, setCredits]);
-
-  const { setData: setVideos } = videos;
-  const poll = useCallback(async () => {
+  // Reels finish in the background; while one is going, re-list — listing also advances it
+  // server-side, which is what collects finished clips and triggers the stitch.
+  const { setData: setReels } = reels;
+  const poll = useCallback(() => {
     if (!token) return;
-    try {
-      const next = await brandApi.videos(token);
-      setVideos(() => next);
-    } catch {
-      /* a missed check is retried on the next tick */
-    }
-  }, [token, setVideos]);
+    brandApi
+      .reels(token)
+      .then((next) => setReels(() => next))
+      .catch(() => undefined); // a missed check is retried on the next tick
+  }, [token, setReels]);
   useEffect(() => {
-    if (rendering.length === 0) return;
+    if (!busyReel) return;
     const t = setInterval(poll, POLL_MS);
     return () => clearInterval(t);
-  }, [rendering.length, poll]);
+  }, [busyReel, poll]);
+
+  const add = (partial: Pick<Shot, "key"> & Partial<Shot>) => {
+    setShots((list) => {
+      if (list.length >= maxShots) return list;
+      const next: Shot = { avatarId: null, presetId: null, pose: "front", ...partial };
+      return [...list, next];
+    });
+    setEditing(partial.key);
+  };
+
+  const addProduct = (p: ProductItem) => {
+    if (shots.some((s) => s.product?.id === p.id)) return;
+    add({ key: `p-${p.id}`, product: p });
+  };
+
+  const patch = (key: string, changes: Partial<Shot>) => setShots((list) => list.map((s) => (s.key === key ? { ...s, ...changes } : s)));
 
   const onUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return setError("Choose an image file (JPG, PNG or WebP).");
-    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) return setError(`That photo is over ${MAX_UPLOAD_MB} MB. Choose a smaller one.`);
-    try {
-      setCustom({ dataUrl: await readAsDataUrl(file), name: file.name });
-      setError("");
-    } catch {
-      setError("We couldn't read that photo. Try another one.");
+    setError("");
+    for (const file of files) {
+      if (shots.length >= maxShots) break;
+      if (!file.type.startsWith("image/")) {
+        setError("Choose image files (JPG, PNG or WebP).");
+        continue;
+      }
+      if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+        setError(`${file.name} is over ${MAX_UPLOAD_MB} MB.`);
+        continue;
+      }
+      try {
+        const dataUrl = await readAsDataUrl(file);
+        add({ key: `u-${file.name}-${Date.now()}`, upload: { dataUrl, name: file.name } });
+      } catch {
+        setError(`We couldn't read ${file.name}.`);
+      }
     }
   };
 
-  const generate = async () => {
-    if (!token || !activePreset) return;
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= shots.length) return;
+    setShots((list) => {
+      const next = [...list];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  };
+
+  const drop = (key: string) => {
+    setShots((list) => list.filter((s) => s.key !== key));
+    setEditing((e) => (e === key ? null : e));
+  };
+
+  const start = async () => {
+    if (!token || !style || !canRun) return;
     setStarting(true);
     setError("");
     try {
-      // An uploaded photo is stored first so the request carries a link, not megabytes of image data.
-      const customImageUrl = custom ? (await brandApi.uploadBase64(token, custom.dataUrl, custom.name)).url : undefined;
-      const { video, remainingCredits } = await brandApi.createVideo(token, {
-        garmentId: custom ? undefined : activeProduct?.id,
-        customImageUrl,
-        presetId: activePreset.id,
-        aspectRatio: ratios.length ? activeRatio : undefined,
-        prompt: prompt.trim() || undefined,
-      });
+      // Uploads are stored first, so the request carries links rather than megabytes of image data.
+      const payload: ReelShotInput[] = [];
+      for (const s of shots) {
+        const chosen = s.presetId ? { presetId: s.presetId } : {};
+        if (s.upload) {
+          const { url } = await brandApi.uploadBase64(token, s.upload.dataUrl, s.upload.name);
+          payload.push({ customImageUrl: url, label: shotLabel(s), ...chosen });
+        } else if (s.product) {
+          payload.push({ garmentId: s.product.id, label: s.product.title, caption: formatRupee(s.product.price), ...chosen });
+        }
+      }
+      const { reel, remainingCredits } = await brandApi.createReel(token, { title: title.trim() || undefined, styleId: style.id, shots: payload });
       setCredits(remainingCredits);
-      seen.current.set(video.id, video.status);
-      setVideos((prev) => [video, ...(prev ?? [])]);
-      setActiveId(video.id);
+      setReels((prev) => [reel, ...(prev ?? [])]);
+      setOpenId(reel.id);
+      setShots([]);
+      setEditing(null);
+      setTitle("");
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -266,12 +180,12 @@ export function VideoStudio() {
     }
   };
 
-  const remove = async (v: BrandVideo) => {
-    if (!token || !confirm("Delete this video? This can't be undone.")) return;
+  const remove = async (reel: BrandReel) => {
+    if (!token || !confirm("Delete this reel? This can't be undone.")) return;
     try {
-      await brandApi.deleteVideo(token, v.id);
-      setVideos((prev) => (prev ?? []).filter((x) => x.id !== v.id));
-      if (activeId === v.id) setActiveId(null);
+      await brandApi.deleteReel(token, reel.id);
+      setReels((prev) => (prev ?? []).filter((r) => r.id !== reel.id));
+      if (openId === reel.id) setOpenId(null);
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -287,17 +201,15 @@ export function VideoStudio() {
     }
   };
 
-  const shownRatio = active?.aspectRatio && active.aspectRatio !== "auto" ? active.aspectRatio : ratios.length ? activeRatio : "9:16";
-
   return (
     <div className="space-y-6">
       <BrandPageHeader
         eyebrow="AI Studio"
-        title="Motion videos"
-        blurb="A garment photo in, a short fashion film out."
+        title="Video"
+        blurb={`${minShots}–${maxShots} outfits, your models and moves, one reel to post.`}
         actions={
           <p className="glass-pill flex h-11 items-center gap-2 rounded-full px-5 text-sm text-white tabular-nums">
-            {cost} credits per video · <span className="font-medium">{brand.aiCredits} available</span> ·{" "}
+            {cost} credits per reel · <span className="font-medium">{brand.aiCredits} available</span> ·{" "}
             <Link href="/billing" className="text-accent-bright hover:underline">
               Buy more
             </Link>
@@ -306,273 +218,520 @@ export function VideoStudio() {
       />
 
       {status.status === "ready" && !cfg?.available && (
-        <Notice tone="info">Motion videos are being switched on for your account. You can set up a video now; rendering will start working soon, and nothing is charged until it does.</Notice>
+        <Notice tone="info">
+          {cfg?.reason === "ffmpeg"
+            ? "Reels need video stitching, which isn't switched on for this server yet. You can line one up now; nothing is charged until it can run."
+            : "Reels are being switched on for your account. You can line one up now; nothing is charged until rendering works."}
+        </Notice>
       )}
       {error && <Notice tone="error">{error}</Notice>}
       {cfg?.available && !canAfford && (
         <Notice tone="info">
-          A motion video costs {cost} credits and you have {brand.aiCredits}.{" "}
+          A reel costs {cost} credits and you have {brand.aiCredits}.{" "}
           <Link href="/billing" className="font-medium text-white underline">
             Buy a credit pack
           </Link>
         </Notice>
       )}
 
-      <div className="grid grid-cols-1 items-start gap-8 rounded-(--radius-panel) bg-white/[0.02] p-5 ring-1 ring-white/[0.06] sm:p-6 lg:grid-cols-12">
-        {/* ── Preview: the photo, the render in progress, or the finished clip ── */}
-        <div className="flex flex-col items-center gap-3 lg:sticky lg:top-24 lg:col-span-5">
-          <div className={cn("relative w-full max-w-[300px] overflow-hidden rounded-2xl bg-black/60 shadow-2xl ring-1 ring-white/10 transition-[aspect-ratio] duration-300", aspectClass(shownRatio))}>
-            {active?.status === "READY" && active.videoUrl ? (
-              <video key={active.id} src={assetUrl(active.videoUrl)} poster={assetUrl(active.sourceImageUrl)} controls autoPlay loop muted playsInline className="size-full object-cover" />
-            ) : (active?.sourceImageUrl ?? activeImage) ? (
-              <Photo src={active?.sourceImageUrl ?? activeImage} alt="Garment photo" className={cn("transition-all duration-700", active?.status === "RENDERING" && "scale-105 brightness-50 blur-[2px]")} />
-            ) : (
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs text-muted">
-                <Shirt className="size-8" strokeWidth={1.5} aria-hidden />
-                Pick or upload a garment photo
-              </span>
-            )}
-            {active?.status === "RENDERING" && <RenderingOverlay video={active} />}
-            {active?.status === "FAILED" && (
-              <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 p-5 text-center">
-                <AlertTriangle className="size-6 text-amber-300" aria-hidden />
-                <p className="text-xs font-medium text-white">This render didn&apos;t work</p>
-                <p className="line-clamp-4 text-[11px] text-muted">{active.error}</p>
-                {active.refunded && <p className="text-[11px] text-green">{active.credits} credits were returned.</p>}
-              </div>
-            )}
-          </div>
-
-          {active?.status === "READY" && active.videoUrl && (
-            <div className="flex w-full max-w-[300px] gap-2">
-              <a href={assetUrl(active.videoUrl)} download={`${active.presetName.replace(/\s+/g, "-").toLowerCase()}.mp4`} className="btn-primary flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-medium hover:brightness-110">
-                <Download className="size-4" aria-hidden /> Download MP4
-              </a>
-              <button type="button" onClick={() => copyLink(active.videoUrl!)} className="glass-pill flex h-10 items-center gap-1.5 rounded-full px-4 text-sm text-white hover:brightness-125">
-                <Link2 className="size-4" aria-hidden /> {copied ? "Copied" : "Link"}
-              </button>
-            </div>
-          )}
-          {active && (
-            <button type="button" onClick={() => setActiveId(null)} className="flex items-center gap-1.5 text-xs text-accent-bright hover:underline">
-              <RotateCcw className="size-3.5" aria-hidden /> Set up a new video
-            </button>
-          )}
+      {/* ── The storyboard: what the reel will actually run ── */}
+      <section className="space-y-3 rounded-(--radius-panel) bg-white/[0.02] p-5 ring-1 ring-white/[0.06] sm:p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <Label>Your reel</Label>
+          <span className="text-[11px] tabular-nums text-muted">
+            {shots.length}/{maxShots} shots
+            {shots.length > 0 && style ? ` · about ${runtime}s` : ""}
+          </span>
         </div>
 
-        {/* ── Set-up ── */}
-        <div className="space-y-6 lg:col-span-7">
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <Label>1. Garment photo</Label>
-              {custom ? (
-                <button type="button" onClick={() => setCustom(null)} className="text-accent-bright hover:underline">
-                  Clear
-                </button>
-              ) : (
-                activeProduct && <span className="truncate text-muted">{activeProduct.title}</span>
-              )}
-            </div>
-
-            {/* Uploading is the way in: a photo is all this needs, catalog or no catalog. */}
+        <div className="no-scrollbar flex items-stretch gap-2.5 overflow-x-auto pb-1">
+          <EndCard label={brand.name} sub="Opening" />
+          {shots.map((s, i) => (
+            <ShotTile
+              key={s.key}
+              shot={s}
+              index={i}
+              last={i === shots.length - 1}
+              editing={editing === s.key}
+              preset={presetList.find((p) => p.id === s.presetId)}
+              onSelect={() => setEditing(s.key)}
+              onRemove={() => drop(s.key)}
+              onMove={(to) => move(i, to)}
+            />
+          ))}
+          {shots.length < maxShots && (
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-2xl border border-dashed px-4 py-4 text-left transition-colors",
-                custom ? "border-accent bg-accent/15" : "border-white/20 hover:border-accent-bright hover:bg-accent/5"
-              )}
+              className="flex w-[112px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/20 transition-colors hover:border-accent-bright hover:bg-accent/5"
+              style={{ aspectRatio: "9 / 16" }}
             >
-              <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/[0.06]">
-                {custom ? <Photo src={custom.dataUrl} alt="" /> : <Upload className="size-5 text-accent-bright" strokeWidth={1.75} aria-hidden />}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-white">{custom ? custom.name : "Upload a photo"}</span>
-                <span className="block text-[11px] text-muted">One person, full outfit in frame, good light</span>
-              </span>
+              <Plus className="size-5 text-accent-bright" aria-hidden />
+              <span className="text-[10px] text-white/80">Add outfit</span>
             </button>
-            <input ref={fileRef} type="file" accept="image/*" onChange={onUpload} className="hidden" />
+          )}
+          <EndCard label="Shop now" sub="Closing" />
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" multiple onChange={onUpload} className="hidden" />
 
-            {/* The catalog is a shortcut for brands that have one, never a requirement. */}
-            {products.length > 0 && (
-              <>
-                <p className="text-[11px] text-muted">or pick from your catalog</p>
-                <GarmentSearch picker={picker} />
-              </>
-            )}
+        {!enough && <p className="text-[11px] text-muted">Add at least {minShots} outfits to make a reel.</p>}
+
+        {products.length > 0 && (
+          <div className="space-y-2.5 border-t border-white/8 pt-4">
+            <p className="text-[11px] text-muted">or add from your catalog</p>
+            <GarmentSearch picker={picker} />
             <div className="no-scrollbar flex items-center gap-2.5 overflow-x-auto pb-1">
               {picker.list.map((p) => {
-                const selected = !custom && activeProduct?.id === p.id;
+                const added = shots.some((s) => s.product?.id === p.id);
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      setProductId(p.id);
-                      picker.pick(p);
-                      setCustom(null);
-                      setActiveId(null);
-                    }}
+                    disabled={added || shots.length >= maxShots}
+                    onClick={() => addProduct(p)}
                     className={cn(
-                      "flex shrink-0 items-center gap-2.5 rounded-xl border p-1.5 pr-3 text-left transition-colors",
-                      selected ? "border-accent bg-accent/20 text-white ring-1 ring-accent" : "border-white/[0.06] bg-white/[0.02] text-muted hover:border-white/15 hover:text-white"
+                      "flex shrink-0 items-center gap-2.5 rounded-xl border p-1.5 pr-3 text-left transition-colors disabled:opacity-40",
+                      added ? "border-accent bg-accent/15" : "border-white/[0.07] bg-white/[0.02] hover:border-white/20"
                     )}
                   >
-                    <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black/40">
+                    <span className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black/40">
                       {p.images?.[0] ? <Photo src={p.images[0]} alt={p.title} /> : <Shirt className="size-4 text-muted" aria-hidden />}
                     </span>
                     <span className="min-w-0 max-w-[130px]">
                       <span className="block truncate text-[11px] font-medium text-white">{p.title}</span>
-                      <span className="block truncate text-[10px] text-muted">{p.category}</span>
+                      <span className="block truncate text-[10px] text-muted">{formatRupee(p.price)}</span>
                     </span>
                   </button>
                 );
               })}
             </div>
           </div>
+        )}
+      </section>
 
-          <div className="space-y-2">
-            <Label>2. Motion look</Label>
-            {presets.status === "loading" ? (
-              <div className="grid gap-2.5 sm:grid-cols-2" aria-busy>
-                {Array.from({ length: 6 }, (_, i) => (
-                  <Skeleton key={i} className="h-24" />
-                ))}
-              </div>
-            ) : presets.status === "error" ? (
-              <ErrorState message={presets.error} onRetry={presets.reload} className="py-6" />
-            ) : (
-              <>
-                <div role="radiogroup" aria-label="Motion look" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                  {list.map((m) => (
-                    <MotionTile key={m.id} preset={m} selected={activePreset?.id === m.id} onSelect={() => setPresetId(m.id)} />
-                  ))}
-                </div>
-                {activePreset && <p className="text-[11px] leading-relaxed text-muted">{activePreset.description}</p>}
-              </>
-            )}
+      {/* ── One shot at a time: who wears it, and how it moves ── */}
+      {shot && (
+        <ShotEditor
+          shot={shot}
+          index={shots.findIndex((s) => s.key === shot.key)}
+          presets={presetList}
+          presetsLoading={presets.status === "loading"}
+          presetsError={presets.status === "error" ? presets.error : ""}
+          onRetryPresets={presets.reload}
+          onChange={(changes) => patch(shot.key, changes)}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {/* ── Style ── */}
+      <section className="space-y-3">
+        <Label>Style</Label>
+        {styles.status === "loading" ? (
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-28" />
+            ))}
           </div>
-
-          {ratios.length > 1 && (
-            <div className="space-y-2">
-              <Label>3. Shape</Label>
-              <Segmented label="Shape" value={activeRatio} onChange={setRatio} options={ratios.map((r) => ({ id: r, label: RATIO_LABEL[r] ?? r }))} />
+        ) : styles.status === "error" ? (
+          <ErrorState message={styles.error} onRetry={styles.reload} className="py-6" />
+        ) : (
+          <>
+            <div role="radiogroup" aria-label="Reel style" className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {styleList.map((s) => {
+                const on = style?.id === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setStyleId(s.id)}
+                    title={s.description}
+                    className={cn("overflow-hidden rounded-2xl text-left transition-all", on ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
+                  >
+                    <span className="flex h-16 items-center justify-center" style={{ background: `#${s.cardColor.replace(/^0x/, "")}` }}>
+                      <Clapperboard className="size-5 text-white/70" strokeWidth={1.5} aria-hidden />
+                    </span>
+                    <span className={cn("block px-3 py-2.5", on ? "bg-accent/20" : "bg-white/[0.03]")}>
+                      <span className="block truncate text-xs font-medium text-white">{s.name}</span>
+                      <span className="block truncate text-[10px] text-muted">{s.badge}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+            {style && <p className="text-[11px] leading-relaxed text-muted">{style.description}</p>}
+          </>
+        )}
+      </section>
 
-          <div className="space-y-2">
-            <Label htmlFor="studio-prompt">{ratios.length > 1 ? "4." : "3."} Creative direction (optional)</Label>
-            <textarea
-              id="studio-prompt"
-              rows={2}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              maxLength={300}
-              placeholder="e.g. Golden-hour light on a palace terrace, a soft breeze lifting the dupatta"
-              className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-muted/70 hover:border-white/20 focus:border-accent-bright/70 focus:ring-4 focus:ring-accent/20"
-            />
-            <p className="text-right text-[10px] text-dim tabular-nums">{prompt.length}/300</p>
-          </div>
-
-          <ActionButton onClick={generate} loading={starting} disabled={!canRun} className="h-12 w-full">
-            {!starting && <Sparkles className="size-4" aria-hidden />}
-            {starting ? "Starting your render…" : `Render ${cfg?.durationSec ? `${cfg.durationSec}-second ` : ""}video · ${cost} credits`}
-          </ActionButton>
-          <p className="text-center text-[11px] text-muted">
-            {rendering.length >= 2
-              ? "Two videos are rendering. Start another when one finishes."
-              : "Renders take 1–3 minutes and keep going if you leave this page. If one fails, its credits come back."}
-          </p>
-        </div>
+      <div className="space-y-2">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={80}
+          placeholder={style ? `${brand.name} — ${style.name}` : "Reel name"}
+          aria-label="Reel name"
+          className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 text-sm text-white outline-none transition placeholder:text-muted/70 hover:border-white/20 focus:border-accent-bright/70 focus:ring-4 focus:ring-accent/20"
+        />
+        <ActionButton onClick={start} loading={starting} disabled={!canRun} className="h-12 w-full">
+          {!starting && <Sparkles className="size-4" aria-hidden />}
+          {starting ? "Starting your reel…" : `Make the reel · ${cost} credits`}
+        </ActionButton>
+        <p className="text-center text-[11px] text-muted">
+          {busyReel
+            ? "A reel is already being made. Start another once it finishes."
+            : `Every shot renders, then they're stitched with your cards. 5-15 minutes, and it keeps going if you leave. If it fails, the ${cost} credits come back.`}
+        </p>
       </div>
 
-      <VideoGallery videos={videos} activeId={activeId} onOpen={setActiveId} onDelete={remove} />
+      <ReelGallery reels={all} loading={reels.status === "loading"} error={reels.status === "error" ? reels.error : ""} onRetry={reels.reload} openId={openId} onOpen={setOpenId} onDelete={remove} />
+
+      {open?.status === "READY" && open.videoUrl && (
+        <section className="space-y-3 rounded-(--radius-panel) bg-white/[0.02] p-5 ring-1 ring-white/[0.06]">
+          <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl bg-black ring-1 ring-white/12">
+            <video key={open.id} src={assetUrl(open.videoUrl)} controls autoPlay loop playsInline className="aspect-[9/16] w-full object-cover" />
+          </div>
+          <div className="mx-auto flex w-full max-w-[300px] gap-2">
+            <a
+              href={assetUrl(open.videoUrl)}
+              download={`${open.title.replace(/[^\w-]+/g, "-").toLowerCase()}.mp4`}
+              className="btn-primary flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-medium hover:brightness-110"
+            >
+              <Download className="size-4" aria-hidden /> Download MP4
+            </a>
+            <button type="button" onClick={() => copyLink(open.videoUrl!)} className="glass-pill flex h-10 items-center gap-1.5 rounded-full px-4 text-sm text-white hover:brightness-125">
+              <Link2 className="size-4" aria-hidden /> {copied ? "Copied" : "Link"}
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
-function RenderingOverlay({ video }: { video: BrandVideo }) {
-  const seconds = useElapsed(video.createdAt);
+/** One shot in the strip: the piece, a badge for its model, and the move it ends up with. */
+function ShotTile({
+  shot,
+  index,
+  last,
+  editing,
+  preset,
+  onSelect,
+  onRemove,
+  onMove,
+}: {
+  shot: Shot;
+  index: number;
+  last: boolean;
+  editing: boolean;
+  preset?: MotionPreset;
+  onSelect: () => void;
+  onRemove: () => void;
+  onMove: (to: number) => void;
+}) {
+  const avatar = avatarById(shot.avatarId);
+  const image = shotImage(shot);
   return (
-    <div role="status" className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 p-5 text-center">
-      <span className="relative flex size-12 items-center justify-center">
-        <span className="absolute inset-0 animate-spin rounded-full border-2 border-accent-bright/30 border-t-accent-bright" />
-        <Clapperboard className="size-5 text-white" aria-hidden />
+    <figure className="group relative w-[112px] shrink-0">
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-label={`Edit shot ${index + 1}`}
+        className={cn("relative block aspect-[9/16] w-full overflow-hidden rounded-xl bg-black/50 text-left transition", editing ? "ring-2 ring-accent-bright" : "ring-1 ring-white/12 hover:ring-white/30")}
+      >
+        {image ? (
+          <Photo src={image} alt="" />
+        ) : (
+          <span className="absolute inset-0 grid place-items-center">
+            <Shirt className="size-6 text-white/20" />
+          </span>
+        )}
+        <span className="absolute left-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-[10px] font-medium text-white tabular-nums">{index + 1}</span>
+        {/* Who wears it, and the move: both read at a glance off the tile. */}
+        <span className="absolute inset-x-1.5 bottom-6 flex items-end justify-between gap-1">
+          {avatar ? (
+            <span className="flex size-7 items-end justify-center overflow-hidden rounded-full bg-black/55 ring-1 ring-white/25 backdrop-blur">
+              <AvatarFigure build={avatar.build} skin={avatar.skin} pose={shot.pose} className="h-[88%] w-auto" />
+            </span>
+          ) : (
+            <span />
+          )}
+          {preset && <span className="truncate rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] text-white/85 backdrop-blur">{preset.badge}</span>}
+        </span>
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-1.5 pb-1.5 pt-5">
+          <span className="block truncate text-[9px] text-white/80">{shotLabel(shot) || "Outfit"}</span>
+        </span>
+      </button>
+      <span className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <button type="button" onClick={onRemove} aria-label={`Remove shot ${index + 1}`} className="flex size-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-500/80">
+          <X className="size-3" aria-hidden />
+        </button>
       </span>
-      <p className="text-xs font-medium text-white">{stage(seconds)}</p>
-      <p className="font-mono text-[11px] tabular-nums text-muted">{clock(seconds)}</p>
-    </div>
+      <span className="absolute inset-x-1.5 bottom-1.5 flex justify-between opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <button type="button" onClick={() => onMove(index - 1)} disabled={index === 0} aria-label="Move earlier" className="text-white/70 hover:text-white disabled:opacity-25">
+          <GripVertical className="size-3.5 rotate-90" aria-hidden />
+        </button>
+        <button type="button" onClick={() => onMove(index + 1)} disabled={last} aria-label="Move later" className="text-white/70 hover:text-white disabled:opacity-25">
+          <GripVertical className="size-3.5 -rotate-90" aria-hidden />
+        </button>
+      </span>
+    </figure>
   );
 }
 
-function VideoGallery({
-  videos,
-  activeId,
+/** The model and the move for the shot being edited. */
+function ShotEditor({
+  shot,
+  index,
+  presets,
+  presetsLoading,
+  presetsError,
+  onRetryPresets,
+  onChange,
+  onClose,
+}: {
+  shot: Shot;
+  index: number;
+  presets: MotionPreset[];
+  presetsLoading: boolean;
+  presetsError: string;
+  onRetryPresets: () => void;
+  onChange: (changes: Partial<Shot>) => void;
+  onClose: () => void;
+}) {
+  const image = shotImage(shot);
+  const avatar = avatarById(shot.avatarId);
+  return (
+    <section className="space-y-5 rounded-(--radius-panel) bg-white/[0.02] p-5 ring-1 ring-white/[0.06] sm:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-black/40">
+            {image ? (
+              <Photo src={image} alt="" />
+            ) : (
+              <span className="absolute inset-0 grid place-items-center">
+                <Shirt className="size-4 text-white/25" />
+              </span>
+            )}
+          </span>
+          <span>
+            <span className="block text-sm font-medium text-white">Shot {index + 1}</span>
+            <span className="block truncate text-[11px] text-muted">{shotLabel(shot) || "Outfit"}</span>
+          </span>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close shot" className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-white/8 hover:text-white">
+          <X className="size-4" aria-hidden />
+        </button>
+      </div>
+
+      {/* ── Who wears it ── */}
+      <div className="space-y-2.5">
+        <Label>Model</Label>
+        <div role="radiogroup" aria-label="Model" className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={shot.avatarId === null}
+            onClick={() => onChange({ avatarId: null })}
+            className={cn(
+              "group overflow-hidden rounded-2xl transition-all",
+              shot.avatarId === null ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25"
+            )}
+          >
+            <span className="relative flex aspect-[3/4] items-center justify-center bg-white/[0.03]">
+              {image ? <Photo src={image} alt="" /> : <Shirt className="size-5 text-white/25" aria-hidden />}
+            </span>
+            <span className={cn("block truncate px-2 py-1.5 text-[11px] font-medium", shot.avatarId === null ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>Photo as is</span>
+          </button>
+          {AVATARS.map((a) => (
+            <AvatarTile key={a.id} avatar={a} pose={shot.pose} selected={shot.avatarId === a.id} onSelect={() => onChange({ avatarId: a.id })} />
+          ))}
+        </div>
+        {shot.avatarId && (
+          <p className="flex items-center gap-1.5 text-[11px] text-muted">
+            <Wand2 className="size-3.5 shrink-0 text-accent-bright" aria-hidden />
+            The piece is draped on this model before the shot moves.
+          </p>
+        )}
+      </div>
+
+      {/* ── How the model stands: shown in the body that was just picked ── */}
+      {avatar && (
+        <div className="space-y-2.5">
+          <Label>Pose</Label>
+          <div role="radiogroup" aria-label="Pose" className="no-scrollbar flex gap-2.5 overflow-x-auto pb-1">
+            {MODEL_POSES.map((p) => {
+              const on = shot.pose === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-label={p.label}
+                  onClick={() => onChange({ pose: p.id })}
+                  className={cn("w-[88px] shrink-0 overflow-hidden rounded-2xl transition-all", on ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
+                >
+                  <span className="relative flex aspect-[3/4] items-end justify-center bg-white/[0.03]">
+                    <AvatarFigure build={avatar.build} skin={avatar.skin} pose={p.id} className="h-[86%] w-auto" />
+                  </span>
+                  <span className={cn("block truncate px-2 py-1.5 text-[10px] font-medium", on ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle")}>{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── How it moves ── */}
+      <div className="space-y-2.5">
+        <Label>Move</Label>
+        {presetsLoading ? (
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4" aria-busy>
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-28" />
+            ))}
+          </div>
+        ) : presetsError ? (
+          <ErrorState message={presetsError} onRetry={onRetryPresets} className="py-6" />
+        ) : (
+          <>
+            <div role="radiogroup" aria-label="Move" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={shot.presetId === null}
+                onClick={() => onChange({ presetId: null })}
+                className={cn("group overflow-hidden rounded-2xl text-left transition-all", shot.presetId === null ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
+              >
+                <span className="relative flex aspect-[4/3] items-center justify-center bg-[radial-gradient(ellipse_at_50%_20%,#3a3350_0%,#14151f_72%)]">
+                  <Sparkles className="size-5 text-white/70" aria-hidden />
+                </span>
+                <span className={cn("block px-3 py-2.5 text-xs font-medium", shot.presetId === null ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>Style picks</span>
+              </button>
+              {presets.map((p) => (
+                <MotionTile key={p.id} preset={p} selected={shot.presetId === p.id} onSelect={() => onChange({ presetId: p.id })} />
+              ))}
+            </div>
+            <p className="text-[11px] leading-relaxed text-muted">{presets.find((p) => p.id === shot.presetId)?.description ?? "Each shot gets the move the style is known for."}</p>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** The brand cards that top and tail every reel, shown so the storyboard reads end to end. */
+function EndCard({ label, sub }: { label: string; sub: string }) {
+  return (
+    <figure className="w-[92px] shrink-0">
+      <div className="relative flex aspect-[9/16] flex-col items-center justify-center gap-1 overflow-hidden rounded-xl bg-[#0b0b1e] px-2 text-center ring-1 ring-white/10">
+        <span className="truncate text-[10px] font-medium text-white/90">{label}</span>
+        <span className="text-[8px] uppercase tracking-[0.12em] text-muted">{sub}</span>
+      </div>
+    </figure>
+  );
+}
+
+function ReelGallery({
+  reels,
+  loading,
+  error,
+  onRetry,
+  openId,
   onOpen,
   onDelete,
 }: {
-  videos: ReturnType<typeof useResource<BrandVideo[]>>;
-  activeId: string | null;
+  reels: BrandReel[];
+  loading: boolean;
+  error: string;
+  onRetry: () => void;
+  openId: string | null;
   onOpen: (id: string) => void;
-  onDelete: (v: BrandVideo) => void;
+  onDelete: (r: BrandReel) => void;
 }) {
-  const list = useMemo(() => videos.data ?? [], [videos.data]);
   return (
-    <section aria-label="Your videos" className="space-y-3">
+    <section aria-label="Your reels" className="space-y-3">
       <div className="flex items-baseline justify-between">
         <h2 className="flex items-center gap-2 text-sm font-medium text-white">
-          <Film className="size-4 text-accent-bright" aria-hidden /> Your videos
+          <Clapperboard className="size-4 text-accent-bright" aria-hidden /> Your reels
         </h2>
-        {list.length > 0 && <span className="text-xs text-muted">{list.length}</span>}
+        {reels.length > 0 && <span className="text-xs text-muted">{reels.length}</span>}
       </div>
-      {videos.status === "loading" ? (
+      {loading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 5 }, (_, i) => (
             <Skeleton key={i} className="aspect-[9/16]" />
           ))}
         </div>
-      ) : videos.status === "error" ? (
-        <ErrorState message={videos.error} onRetry={videos.reload} className="py-6" />
-      ) : list.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-muted">Your rendered videos will appear here, ready to download.</p>
+      ) : error ? (
+        <ErrorState message={error} onRetry={onRetry} className="py-6" />
+      ) : reels.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-muted">Your finished reels appear here, ready to download.</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {list.map((v) => (
-            <article key={v.id} className={cn("group relative overflow-hidden rounded-xl bg-black/50 ring-1 transition", v.id === activeId ? "ring-2 ring-accent-bright" : "ring-white/10 hover:ring-white/25")}>
-              <button type="button" onClick={() => onOpen(v.id)} aria-label={`Open ${v.presetName} video`} className={cn("relative block w-full", aspectClass(v.aspectRatio))}>
-                {v.status === "READY" && v.videoUrl ? (
-                  <video src={`${assetUrl(v.videoUrl)}#t=0.5`} muted playsInline preload="metadata" className="size-full object-cover" />
-                ) : (
-                  <Photo src={v.sourceImageUrl} alt="" className={cn(v.status !== "READY" && "brightness-50")} />
-                )}
-                <span className="absolute inset-0 flex items-center justify-center">
-                  {v.status === "RENDERING" ? (
-                    <LoaderCircle className="size-6 animate-spin text-white" aria-label="Rendering" />
-                  ) : v.status === "READY" ? (
-                    <span className="flex size-10 items-center justify-center rounded-full bg-black/55 text-white opacity-90 backdrop-blur transition group-hover:scale-110">
-                      <Play className="size-4 fill-white" aria-hidden />
-                    </span>
+          {reels.map((r) => {
+            const working = r.status === "RENDERING" || r.status === "COMPOSING";
+            const pct = r.shotsTotal ? Math.round((r.shotsReady / r.shotsTotal) * 100) : 0;
+            return (
+              <article key={r.id} className={cn("group relative overflow-hidden rounded-xl bg-black/50 ring-1 transition", r.id === openId ? "ring-2 ring-accent-bright" : "ring-white/10 hover:ring-white/25")}>
+                <button type="button" onClick={() => onOpen(r.id)} aria-label={`Open ${r.title}`} className="relative block aspect-[9/16] w-full">
+                  {r.status === "READY" && r.videoUrl ? (
+                    <video src={`${assetUrl(r.videoUrl)}#t=0.5`} muted playsInline preload="metadata" className="size-full object-cover" />
+                  ) : r.shots[0] ? (
+                    <Photo src={r.shots[0].sourceImageUrl} alt="" className={cn(r.status !== "READY" && "brightness-50")} />
                   ) : (
-                    <AlertTriangle className="size-5 text-amber-300" aria-label="Failed" />
+                    <span className="absolute inset-0 grid place-items-center">
+                      <Shirt className="size-6 text-white/20" />
+                    </span>
                   )}
-                </span>
-              </button>
-              <div className="flex items-center justify-between gap-2 p-2">
-                <span className="min-w-0">
-                  <span className="block truncate text-[11px] font-medium text-white">{v.presetName}</span>
-                  <span className={cn("block text-[10px]", v.status === "FAILED" ? "text-amber-300" : "text-muted")}>
-                    {v.status === "RENDERING" ? "Rendering…" : v.status === "FAILED" ? (v.refunded ? "Failed · refunded" : "Failed") : new Date(v.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    {working ? (
+                      <span className="flex flex-col items-center gap-1.5">
+                        <span className="relative flex size-9 items-center justify-center">
+                          <span className="absolute inset-0 animate-spin rounded-full border-2 border-accent-bright/30 border-t-accent-bright" />
+                        </span>
+                        <span className="text-[9px] font-medium text-white">{r.status === "COMPOSING" ? "Stitching…" : `${r.shotsReady}/${r.shotsTotal} clips`}</span>
+                      </span>
+                    ) : r.status === "READY" ? (
+                      <span className="flex size-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition group-hover:scale-110">
+                        <Play className="size-3.5 fill-white" aria-hidden />
+                      </span>
+                    ) : (
+                      <AlertTriangle className="size-5 text-amber-300" aria-label="Failed" />
+                    )}
                   </span>
-                </span>
-                {v.status !== "RENDERING" && (
-                  <button type="button" onClick={() => onDelete(v)} aria-label="Delete video" className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-red-500/15 hover:text-red-300">
-                    <Trash2 className="size-3.5" aria-hidden />
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
+                  {working && (
+                    <span aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
+                      <span className="block h-full bg-accent-bright transition-[width] duration-500" style={{ width: `${r.status === "COMPOSING" ? 100 : pct}%` }} />
+                    </span>
+                  )}
+                </button>
+                <div className="flex items-center justify-between gap-2 p-2">
+                  <span className="min-w-0">
+                    <span className="block truncate text-[11px] font-medium text-white">{r.title}</span>
+                    <span className={cn("block text-[10px]", r.status === "FAILED" ? "text-amber-300" : "text-muted")}>
+                      {r.status === "READY"
+                        ? `${r.durationSec}s · ${r.styleName}`
+                        : r.status === "FAILED"
+                          ? r.refunded
+                            ? "Failed · refunded"
+                            : "Failed"
+                          : r.status === "COMPOSING"
+                            ? "Stitching"
+                            : "Rendering"}
+                    </span>
+                  </span>
+                  {!working && (
+                    <button type="button" onClick={() => onDelete(r)} aria-label="Delete reel" className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-red-500/15 hover:text-red-300">
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

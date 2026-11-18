@@ -6,22 +6,20 @@ import { cn } from "@/lib/utils";
 import { BrandPageHeader } from "../BrandPageHeader";
 import { useReadyPanel } from "../BrandPanelProvider";
 import { ContentStudio } from "./ContentStudio";
-import { ContentLibrary } from "./ContentLibrary";
+import { ModelStudio } from "./ModelStudio";
 import { VideoStudio } from "./VideoStudio";
-import { ReelStudio } from "./ReelStudio";
 
-/** The promo reel leads: it is the finished thing a brand actually posts. */
+/** Three things a brand makes here. Saved copy lives on its own page, in the profile menu. */
 const TABS = [
-  { id: "reel", label: "Promo reel" },
-  { id: "video", label: "Single clip" },
-  { id: "content", label: "Write copy" },
-  { id: "library", label: "Saved copy" },
+  { id: "video", label: "Video" },
+  { id: "model", label: "Model" },
+  { id: "content", label: "Write" },
 ] as const;
 
-/** AI Studio: promo reels, single motion clips, written copy and saved copy. */
+/** AI Studio: reels, model shoots and written copy. */
 export function AiStudioView() {
   const { brand } = useReadyPanel();
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("reel");
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("video");
 
   return (
     <div className="space-y-6">
@@ -40,11 +38,11 @@ export function AiStudioView() {
         ))}
       </div>
 
-      {tab === "reel" ? (
-        <ReelStudio />
-      ) : tab === "video" ? (
+      {tab === "video" ? (
         <VideoStudio />
-      ) : tab === "content" ? (
+      ) : tab === "model" ? (
+        <ModelStudio />
+      ) : (
         <div className="space-y-6">
           <BrandPageHeader
             eyebrow="AI Studio"
@@ -53,18 +51,13 @@ export function AiStudioView() {
             actions={
               <p className="glass-pill flex h-11 items-center gap-2 rounded-full px-5 text-sm text-white tabular-nums">
                 2 credits per write · <span className="font-medium">{brand.aiCredits} available</span> ·{" "}
-                <Link href="/billing" className="text-accent-bright hover:underline">
-                  Buy more
+                <Link href="/saved-copy" className="text-accent-bright hover:underline">
+                  Saved copy
                 </Link>
               </p>
             }
           />
           <ContentStudio />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <BrandPageHeader eyebrow="AI Studio" title="Saved copy" blurb="Everything you saved from the writer, ready to copy again. Up to 500 items." />
-          <ContentLibrary />
         </div>
       )}
     </div>
