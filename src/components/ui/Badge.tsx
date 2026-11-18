@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 const tones = {
   neutral: "glass-pill text-subtle",
-  accent: "bg-accent/20 text-[#c9bcff] ring-1 ring-accent-bright/40",
+  accent: "bg-lavender/12 text-lavender-soft ring-1 ring-lavender/30",
   success: "bg-green/10 text-green ring-1 ring-green/30",
   warning: "bg-[#f6c453]/10 text-[#f6c453] ring-1 ring-[#f6c453]/30",
 };

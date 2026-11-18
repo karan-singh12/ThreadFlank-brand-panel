@@ -1,19 +1,10 @@
-import type { Viewport } from "next";
-import { RequireAuth } from "@/features/auth/guards";
-import { AppShell } from "@/features/app/AppShell";
+import { redirect } from "next/navigation";
 
-export const viewport: Viewport = {
-  themeColor: "#010214",
-  // Edge to edge on phones (the app bars pad for the notch and home indicator), and the
-  // keyboard shrinks the layout so the chat composer stays above it.
-  viewportFit: "cover",
-  interactiveWidget: "resizes-content",
-};
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <RequireAuth>
-      <AppShell>{children}</AppShell>
-    </RequireAuth>
-  );
+/**
+ * The shopper pages (discover, wardrobe, profile, …) stay in this repo in sync with User-Panel,
+ * but they are not part of the brand site: a brand token can't call the shopper API, and a brand
+ * should never see the shopper app. Every visit goes to the dashboard, which asks guests to log in.
+ */
+export default function AppLayout() {
+  redirect("/dashboard");
 }

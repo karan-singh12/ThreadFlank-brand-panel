@@ -27,7 +27,7 @@ export function ProductCard({ product, selected, onToggleSelect, onEdit, onDelet
 
   return (
     <article className="group flex flex-col">
-      <div className={cn("relative aspect-[3/4] overflow-hidden rounded-[18px] bg-[radial-gradient(ellipse_at_50%_30%,#1c1840_0%,#0b0c22_75%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_20px_50px_-30px_rgba(0,0,0,0.9)] transition-[transform,box-shadow] duration-300 md:group-hover:-translate-y-1.5 md:group-hover:shadow-[inset_0_0_0_1px_rgba(171,154,255,0.45),0_30px_60px_-24px_rgba(102,69,235,0.5)]", selected && "ring-2 ring-accent-bright")}>
+      <div className={cn("relative aspect-[3/4] overflow-hidden rounded-[18px] bg-[radial-gradient(ellipse_at_50%_30%,#1c1840_0%,#0b0c22_75%)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_20px_50px_-30px_rgba(0,0,0,0.9)] transition-[transform,box-shadow] duration-300 md:group-hover:-translate-y-1.5 md:group-hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22),0_30px_60px_-24px_rgba(0,0,0,0.95)]", selected && "ring-2 ring-accent-bright")}>
         {image ? (
           <Photo src={image} alt={product.title} className="object-top transition-transform duration-500 md:group-hover:scale-[1.04]" />
         ) : (
