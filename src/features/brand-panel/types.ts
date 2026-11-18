@@ -205,27 +205,100 @@ export type MotionPreset = {
   estimatedSeconds: number;
 };
 
-export type SimulationInput = {
-  garmentId?: string;
-  customImageUrl?: string;
-  motionPreset: string;
-  motionIntensity: number;
-  prompt?: string;
-  promptEnhance?: boolean;
+/** Whether motion video rendering is connected, and how (from GET /brand/ai-studio/video/status). */
+export type VideoStatus = {
+  available: boolean;
+  engine: "veo" | "replicate" | null;
+  model: string | null;
+  /** Shapes the engine renders; empty means the clip follows the photo's own shape. */
+  aspectRatios: string[];
+  durationSec: number | null;
+  cost: number;
 };
 
-export type SimulationResult = {
-  simulationId: string;
-  status: string;
-  modelUsed: string;
-  presetUsed: string;
-  intensity: number;
+export type VideoInput = {
+  garmentId?: string;
+  customImageUrl?: string;
+  presetId: string;
+  aspectRatio?: string;
   prompt?: string;
-  previewVideoUrl: string;
-  thumbnailUrl: string;
-  creditsDeducted: number;
-  remainingCredits: number;
+};
+
+/** One motion video job: RENDERING while the engine works, then READY or FAILED (credits refunded). */
+export type ReelStyle = {
+  id: string;
+  name: string;
+  badge: string;
+  description: string;
+  presetIds: string[];
+  cardColor: string;
+  introSec: number;
+  outroSec: number;
+  outroLine: string;
+};
+
+export type ReelStatus = {
+  available: boolean;
+  engine: string | null;
+  /** Why reels are off: no video engine, or this server cannot stitch. */
+  reason: "engine" | "ffmpeg" | null;
+  minShots: number;
+  maxShots: number;
+  shotSeconds: number;
+  cost: number;
+};
+
+/** One outfit inside a reel, with its own clip. */
+export type ReelShot = {
+  id: string;
+  position: number;
+  status: "RENDERING" | "READY" | "FAILED";
+  label: string;
+  caption: string;
+  garmentId: string | null;
+  sourceImageUrl: string;
+  clipUrl: string | null;
+};
+
+export type BrandReel = {
+  id: string;
+  /** COMPOSING = every clip is in and the reel is being stitched. */
+  status: "RENDERING" | "COMPOSING" | "READY" | "FAILED";
+  title: string;
+  styleId: string;
+  styleName: string;
+  aspectRatio: string;
+  videoUrl: string | null;
+  durationSec: number;
+  error: string | null;
+  credits: number;
+  refunded: boolean;
+  shotsReady: number;
+  shotsTotal: number;
+  shots: ReelShot[];
   createdAt: string;
+  finishedAt: string | null;
+};
+
+export type ReelShotInput = { garmentId?: string; customImageUrl?: string; label?: string; caption?: string };
+export type ReelInput = { title?: string; styleId: string; shots: ReelShotInput[]; prompt?: string };
+
+export type BrandVideo = {
+  id: string;
+  status: "RENDERING" | "READY" | "FAILED";
+  garmentId: string | null;
+  presetId: string;
+  presetName: string;
+  aspectRatio: string;
+  durationSec: number;
+  sourceImageUrl: string;
+  videoUrl: string | null;
+  error: string | null;
+  credits: number;
+  refunded: boolean;
+  engine: string;
+  createdAt: string;
+  finishedAt: string | null;
 };
 
 export type ContentType = "product_description" | "instagram_caption" | "launch_announcement" | "email_blurb" | "seo_meta" | "whatsapp_broadcast" | "product_title";

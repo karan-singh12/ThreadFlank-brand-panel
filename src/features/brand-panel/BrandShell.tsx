@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { BrandAvatar } from "./BrandAvatar";
 import { BrandSettings } from "./BrandSettings";
 import { useBrandPanel } from "./BrandPanelProvider";
-import { BRAND_NAV, isNavActive } from "./nav";
+import { BRAND_MENU, BRAND_NAV, isNavActive } from "./nav";
 
 /** Closes a popover on outside click or Escape. */
 function useDismiss(open: boolean, close: () => void) {
@@ -84,7 +84,7 @@ export function BrandShell({ children }: { children: ReactNode }) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex h-8 items-center gap-2 rounded-full px-4 text-sm transition-colors",
+                    "flex h-8 items-center gap-2 whitespace-nowrap rounded-full px-4 text-sm transition-colors",
                     active ? "chip-on font-medium" : "text-subtle hover:bg-white/[0.06] hover:text-white"
                   )}
                 >
@@ -147,6 +147,7 @@ export function BrandShell({ children }: { children: ReactNode }) {
 
 /** Avatar button with the brand's account menu, like the shopper app's profile menu. */
 function ProfileMenu() {
+  const pathname = usePathname();
   const { brand } = useBrandPanel();
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -197,6 +198,24 @@ function ProfileMenu() {
           </Link>
 
           <div className="mt-2 flex flex-col border-t border-white/8 pt-2">
+            {BRAND_MENU.map((item) => {
+              const active = isNavActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={close}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex h-10 items-center gap-3 rounded-xl px-3 text-sm transition-colors hover:bg-white/6 hover:text-white",
+                    active ? "bg-white/6 text-white" : "text-subtle"
+                  )}
+                >
+                  <item.icon className="size-4" strokeWidth={1.75} aria-hidden />
+                  {item.label}
+                </Link>
+              );
+            })}
             <button
               type="button"
               onClick={() => {

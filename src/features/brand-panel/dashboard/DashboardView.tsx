@@ -97,7 +97,7 @@ export function DashboardView() {
             className="card-violet group flex flex-col gap-3 rounded-(--radius-card) p-4 transition-transform duration-300 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright"
           >
             <span className="keycap flex size-10 items-center justify-center rounded-xl">
-              <a.icon className="size-[18px] text-[#c9bcff]" strokeWidth={1.75} aria-hidden />
+              <a.icon className="size-[18px] text-lavender-soft" strokeWidth={1.75} aria-hidden />
             </span>
             <span>
               <span className="flex items-center gap-1 text-sm text-white">

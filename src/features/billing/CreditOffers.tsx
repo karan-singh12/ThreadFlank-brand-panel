@@ -154,7 +154,7 @@ function OfferCard({
       className={cn(
         "relative flex h-full flex-col rounded-3xl px-7 pb-7 text-center sm:px-8 sm:pb-8",
         featured
-          ? "bg-[linear-gradient(180deg,rgba(102,69,235,0.24)_0%,#010214_100%)] pt-14 shadow-[inset_0_0_0_1px_rgba(124,92,255,0.4),0_30px_80px_-30px_rgba(102,69,235,0.55)]"
+          ? "bg-[linear-gradient(180deg,rgba(124,92,255,0.1)_0%,#010214_100%)] pt-14 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18),0_30px_80px_-30px_rgba(0,0,0,0.95)]"
           : "bg-[linear-gradient(180deg,rgba(34,32,39,0.5)_0%,#010214_100%)] pt-10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] lg:mt-6"
       )}
     >
@@ -162,7 +162,7 @@ function OfferCard({
       <div className="flex items-center justify-center gap-2">
         <p className="text-body uppercase tracking-[0.04em] text-cyan">{name}</p>
         {featured && (
-          <span className="rounded-full bg-accent/25 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.06em] text-[#c9bcff] ring-1 ring-accent-bright/40">
+          <span className="rounded-full bg-lavender/12 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.06em] text-lavender-soft ring-1 ring-lavender/30">
             {copy.best}
           </span>
         )}

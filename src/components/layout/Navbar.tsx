@@ -45,9 +45,9 @@ function ProfileCircle({ user, size = "md" }: { user: AuthUser | null; size?: "s
 
   return (
     <Link
-      href="/profile"
-      aria-label="Profile"
-      title={`${name}'s Profile`}
+      href="/dashboard"
+      aria-label="Open dashboard"
+      title={`${name} dashboard`}
       className={cn(
         "flex items-center justify-center overflow-hidden rounded-full border border-white/20 bg-gradient-to-br from-[#6645eb] to-[#3a26a3] font-semibold text-white shadow-sm transition-transform hover:scale-105 hover:border-white/40",
         size === "sm" ? "size-9 text-xs" : "size-10 text-sm"

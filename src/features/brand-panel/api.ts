@@ -16,8 +16,13 @@ import type {
   MetricSummary,
   MotionPreset,
   ProductItem,
-  SimulationInput,
-  SimulationResult,
+  VideoStatus,
+  VideoInput,
+  BrandVideo,
+  BrandReel,
+  ReelInput,
+  ReelStatus,
+  ReelStyle,
   Taxonomy,
   TeamMember,
   TopPiece,
@@ -138,8 +143,38 @@ export const brandApi = {
   async presets(token: string, signal?: AbortSignal) {
     return (await apiRequest<MotionPreset[]>(b.aiStudio.presets, { token, signal })).data;
   },
-  async simulate(token: string, input: SimulationInput) {
-    return (await apiRequest<SimulationResult>(b.aiStudio.simulate, { method: "POST", token, body: input, timeoutMs: 120_000 })).data;
+  async videoStatus(token: string, signal?: AbortSignal) {
+    return (await apiRequest<VideoStatus>(b.aiStudio.videoStatus, { token, signal })).data;
+  },
+  /** Starts a render; it finishes in the background (poll `video`). Returns the job and the new credit balance. */
+  async createVideo(token: string, input: VideoInput) {
+    return (await apiRequest<{ video: BrandVideo; remainingCredits: number }>(b.aiStudio.videos, { method: "POST", token, body: input, timeoutMs: 120_000 })).data;
+  },
+  async videos(token: string, signal?: AbortSignal) {
+    return (await apiRequest<BrandVideo[]>(b.aiStudio.videos, { token, signal, timeoutMs: 90_000 })).data;
+  },
+  async video(token: string, id: string, signal?: AbortSignal) {
+    return (await apiRequest<BrandVideo>(b.aiStudio.video(id), { token, signal, timeoutMs: 90_000 })).data;
+  },
+  async deleteVideo(token: string, id: string) {
+    return (await apiRequest<{ success: boolean }>(b.aiStudio.video(id), { method: "DELETE", token })).data;
+  },
+
+  async reelStyles(token: string, signal?: AbortSignal) {
+    return (await apiRequest<ReelStyle[]>(b.aiStudio.reelStyles, { token, signal })).data;
+  },
+  async reelStatus(token: string, signal?: AbortSignal) {
+    return (await apiRequest<ReelStatus>(b.aiStudio.reelStatus, { token, signal })).data;
+  },
+  /** Starts every shot at once; the reel stitches itself once they are all in (poll `reels`). */
+  async createReel(token: string, input: ReelInput) {
+    return (await apiRequest<{ reel: BrandReel; remainingCredits: number }>(b.aiStudio.reels, { method: "POST", token, body: input, timeoutMs: 180_000 })).data;
+  },
+  async reels(token: string, signal?: AbortSignal) {
+    return (await apiRequest<BrandReel[]>(b.aiStudio.reels, { token, signal, timeoutMs: 120_000 })).data;
+  },
+  async deleteReel(token: string, id: string) {
+    return (await apiRequest<{ success: boolean }>(b.aiStudio.reel(id), { method: "DELETE", token })).data;
   },
 
   async generateContent(token: string, input: ContentRequest) {

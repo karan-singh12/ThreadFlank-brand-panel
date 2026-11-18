@@ -13,6 +13,9 @@
   --color-accent: #6645eb;
   --color-accent-bright: #7f62f6;
   --color-accent-deep: #3f20be;
+  /* The wordmark's "Flank" lavender, and the pale tint used for card edges and rims. */
+  --color-lavender: #7c5cff;
+  --color-lavender-soft: #ded6ff;
   --color-cyan: #1fc5db;
   --color-green: #28e69d;
   --color-line: rgba(255, 255, 255, 0.1);
@@ -60,8 +63,9 @@
 
   --container-page: 1440px;
 
-  --shadow-btn-primary: 0 4px 56px 3px rgba(98, 29, 237, 0.35);
-  --shadow-btn-light: 0 4px 56px 3px rgba(200, 176, 247, 0.2);
+  /* Plain depth, not a coloured halo: a wide purple glow under every button read as a smudge. */
+  --shadow-btn-primary: 0 2px 10px -2px rgba(0, 0, 0, 0.45);
+  --shadow-btn-light: 0 2px 10px -2px rgba(0, 0, 0, 0.3);
 
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -134,23 +138,25 @@ body {
   backdrop-filter: blur(10px);
 }
 
-/* Glass cards with a lavender light along the top edge (a 1px background layer, so sizes don't change). */
+/* Glass cards: a white hairline along the top edge (a 1px background layer, so sizes don't change)
+   and a neutral dark fill. Only a whisper of the wordmark's lavender is left, so the rim reads as
+   white at a glance instead of tinting every panel purple. */
 .card-violet {
   background-image:
-    linear-gradient(90deg, transparent 8%, rgba(196, 177, 250, 0.45) 50%, transparent 92%),
-    linear-gradient(180deg, rgba(102, 69, 235, 0.12) 0%, rgba(14, 15, 27, 0.55) 100%);
+    linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.26) 50%, transparent 90%),
+    linear-gradient(180deg, rgba(124, 92, 255, 0.045) 0%, rgba(14, 15, 27, 0.6) 100%);
   background-size: 100% 1px, 100% 100%;
   background-repeat: no-repeat;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
 }
 
 .card-violet-strong {
   background-image:
-    linear-gradient(90deg, transparent 8%, rgba(196, 177, 250, 0.55) 50%, transparent 92%),
-    linear-gradient(180deg, rgba(102, 69, 235, 0.17) 0%, rgba(21, 22, 38, 0.55) 100%);
+    linear-gradient(90deg, transparent 10%, rgba(222, 214, 255, 0.4) 50%, transparent 90%),
+    linear-gradient(180deg, rgba(124, 92, 255, 0.07) 0%, rgba(18, 19, 32, 0.62) 100%);
   background-size: 100% 1px, 100% 100%;
   background-repeat: no-repeat;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 24px 60px -36px rgba(0, 0, 0, 0.9);
 }
 
 /* Glossy grey chip used for app icons orbiting in integration visuals. */
@@ -160,11 +166,59 @@ body {
   backdrop-filter: blur(8px);
 }
 
-/* Dark keycap with violet rim, used for shortcut / tool icons. */
+/* Dark keycap with a pale rim, used for shortcut / tool icons. */
 .keycap {
-  background-image: linear-gradient(180deg, #221b4a 0%, #120f2c 100%);
-  box-shadow: inset 0 0 0 1px rgba(160, 140, 255, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.08),
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 100%);
+  box-shadow: inset 0 0 0 1px rgba(222, 214, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 12px 30px -12px rgba(0, 0, 0, 0.8);
+}
+
+/* ── Motion-look tiles: the camera move each preset describes, shown instead of written out ──
+   The figure carries one of these; it only runs while the tile is hovered or chosen, so a grid
+   of them is alive on approach rather than permanently busy. */
+@keyframes stage-dolly {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+@keyframes stage-track {
+  0%, 100% { transform: translateX(-11%); }
+  50% { transform: translateX(11%); }
+}
+@keyframes stage-turn {
+  0%, 100% { transform: rotateY(0deg); }
+  50% { transform: rotateY(158deg); }
+}
+@keyframes stage-sway {
+  0%, 100% { transform: translateY(0) rotate(-1.8deg); }
+  50% { transform: translateY(-4%) rotate(1.8deg); }
+}
+@keyframes stage-spin {
+  to { transform: rotate(360deg); }
+}
+
+.stage-figure {
+  animation: var(--stage-anim, stage-sway) var(--stage-dur, 4.5s) ease-in-out infinite;
+  animation-play-state: paused;
+  transform-style: preserve-3d;
+}
+.stage-ring {
+  animation: stage-spin 9s linear infinite;
+  animation-play-state: paused;
+}
+.group:hover .stage-figure,
+.group:focus-visible .stage-figure,
+.stage-on .stage-figure,
+.group:hover .stage-ring,
+.group:focus-visible .stage-ring,
+.stage-on .stage-ring {
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-figure,
+  .stage-ring {
+    animation: none !important;
+  }
 }
 
 /* Scrollable rows that are moved by drag/swipe or arrow handles instead of a visible bar. */
@@ -294,7 +348,7 @@ body {
 /* Selected chip, tab or segment: off-white like the light button, with dark text. */
 .chip-on {
   background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(228, 227, 240, 0.9) 100%);
-  box-shadow: 0 6px 20px -10px rgba(200, 176, 247, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
   color: #0b0b1e;
 }
 
