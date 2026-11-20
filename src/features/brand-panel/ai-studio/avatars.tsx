@@ -137,14 +137,14 @@ export function AvatarTile({ avatar, selected, onSelect, pose = "front" }: { ava
       aria-label={`${avatar.label} model`}
       onClick={onSelect}
       className={cn(
-        "group overflow-hidden rounded-2xl transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright",
+        "tile-frame group overflow-hidden rounded-2xl transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright",
         selected ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25"
       )}
     >
-      <span className="relative flex aspect-[3/4] items-end justify-center bg-[radial-gradient(ellipse_at_50%_25%,rgba(255,255,255,0.1),transparent_70%)] bg-white/[0.03]">
+      <span className="tile-stage relative flex aspect-[3/4] items-end justify-center bg-[radial-gradient(ellipse_at_50%_25%,rgba(255,255,255,0.1),transparent_70%)] bg-white/[0.03]">
         <AvatarFigure build={avatar.build} skin={avatar.skin} pose={pose} className="h-[86%] w-auto" />
       </span>
-      <span className={cn("block truncate px-2 py-1.5 text-[11px] font-medium transition-colors", selected ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>{avatar.label}</span>
+      <span className={cn("tile-label block truncate px-2 py-1.5 text-[11px] font-medium transition-colors", selected ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>{avatar.label}</span>
     </button>
   );
 }

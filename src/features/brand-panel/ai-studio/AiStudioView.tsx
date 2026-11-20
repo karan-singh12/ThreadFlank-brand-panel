@@ -7,11 +7,11 @@ import { BrandPageHeader } from "../BrandPageHeader";
 import { useReadyPanel } from "../BrandPanelProvider";
 import { ContentStudio } from "./ContentStudio";
 import { ModelStudio } from "./ModelStudio";
-import { VideoStudio } from "./VideoStudio";
+import { ReelStudio } from "./ReelStudio";
 
 /** Three things a brand makes here. Saved copy lives on its own page, in the profile menu. */
 const TABS = [
-  { id: "video", label: "Video" },
+  { id: "video", label: "Reel" },
   { id: "model", label: "Model" },
   { id: "content", label: "Write" },
 ] as const;
@@ -39,7 +39,7 @@ export function AiStudioView() {
       </div>
 
       {tab === "video" ? (
-        <VideoStudio />
+        <ReelStudio />
       ) : tab === "model" ? (
         <ModelStudio />
       ) : (

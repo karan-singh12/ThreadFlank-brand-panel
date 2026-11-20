@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { AlertTriangle, Clapperboard, Download, GripVertical, Link2, Play, Plus, Shirt, Sparkles, Trash2, X } from "lucide-react";
+import { AlertTriangle, Clapperboard, Download, GripVertical, Link2, Play, Plus, RotateCcw, Shirt, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { ActionButton, Label, Notice } from "@/components/ui/Controls";
 import { ErrorState } from "@/components/ui/EmptyState";
 import { Photo } from "@/components/ui/Photo";
@@ -17,7 +17,7 @@ import type { BrandReel, ProductItem, ReelShotInput } from "../types";
 import { GarmentSearch, useGarmentPicker } from "../useGarmentPicker";
 import { errorMessage, useResource } from "../useResource";
 import { AVATARS, AvatarFigure, AvatarTile, MODEL_POSES, type PoseId } from "./avatars";
-import { MAX_UPLOAD_MB, MotionTile, readAsDataUrl } from "./motion";
+import { MAX_UPLOAD_MB, MotionStage, MotionTile, aspectClass, readAsDataUrl } from "./motion";
 
 const POLL_MS = 8000;
 
@@ -41,6 +41,27 @@ type Shot = {
 const shotImage = (s: Shot) => s.upload?.dataUrl ?? s.product?.images?.[0] ?? "";
 const shotLabel = (s: Shot) => s.product?.title ?? s.upload?.name.replace(/\.[^.]+$/, "") ?? "";
 
+/** What the reel is doing, from how far along it is (engines don't report real progress). */
+function stage(reel: BrandReel, seconds: number) {
+  if (reel.status === "COMPOSING") return "Stitching the clips with your cards";
+  if (reel.shotsReady > 0) return `${reel.shotsReady} of ${reel.shotsTotal} shots are in`;
+  if (seconds < 20) return "Sending your outfits to the studio";
+  if (seconds < 90) return "Directing the camera on every shot";
+  return "Rendering the shots. A reel takes a few minutes";
+}
+
+function useElapsed(since: string | null) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!since) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [since]);
+  return since ? Math.max(0, Math.round((now - new Date(since).getTime()) / 1000)) : 0;
+}
+
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
 /** A promo reel: several outfits, your cards front and back, one film to post. */
 export function ReelStudio() {
   const { token } = useAuth();
@@ -55,6 +76,7 @@ export function ReelStudio() {
   const [current, setCurrent] = useState<string | null>(null);
   const [styleId, setStyleId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -164,13 +186,19 @@ export function ReelStudio() {
           payload.push({ garmentId: s.product.id, label: s.product.title, caption: formatRupee(s.product.price), ...chosen });
         }
       }
-      const { reel, remainingCredits } = await brandApi.createReel(token, { title: title.trim() || undefined, styleId: style.id, shots: payload });
+      const { reel, remainingCredits } = await brandApi.createReel(token, {
+        title: title.trim() || undefined,
+        styleId: style.id,
+        shots: payload,
+        prompt: prompt.trim() || undefined,
+      });
       setCredits(remainingCredits);
       setReels((prev) => [reel, ...(prev ?? [])]);
       setOpenId(reel.id);
       setShots([]);
       setCurrent(null);
       setTitle("");
+      setPrompt("");
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -235,12 +263,26 @@ export function ReelStudio() {
         </Notice>
       )}
 
-      <div className="grid grid-cols-1 items-start gap-8 rounded-(--radius-panel) bg-white/[0.02] p-5 ring-1 ring-white/[0.06] sm:p-6 lg:grid-cols-12">
+      <div className="card-violet grid grid-cols-1 items-start gap-8 rounded-(--radius-panel) p-5 sm:p-6 lg:grid-cols-12">
         {/* ── Preview: the shot being set up, or the finished reel ── */}
         <div className="flex flex-col items-center gap-3 lg:sticky lg:top-24 lg:col-span-5">
-          <div className="relative aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-2xl bg-black/60 shadow-2xl ring-1 ring-white/10">
+          <div
+            className={cn(
+              "relative w-full max-w-[300px] overflow-hidden rounded-2xl bg-black/60 shadow-2xl ring-1 ring-white/10 transition-[aspect-ratio] duration-300",
+              aspectClass(open?.aspectRatio ?? "9:16")
+            )}
+          >
             {open?.status === "READY" && open.videoUrl ? (
               <video key={open.id} src={assetUrl(open.videoUrl)} controls autoPlay loop playsInline className="size-full object-cover" />
+            ) : open ? (
+              /* A reel being made, or one that failed: its own first shot, not the set-up. */
+              open.shots[0] ? (
+                <Photo src={open.shots[0].sourceImageUrl} alt="" className={cn("transition-all duration-700", open.status !== "FAILED" && "scale-105 brightness-50 blur-[2px]")} />
+              ) : (
+                <span className="absolute inset-0 grid place-items-center">
+                  <Shirt className="size-8 text-white/20" strokeWidth={1.5} aria-hidden />
+                </span>
+              )
             ) : avatar && shot ? (
               /* A model was picked for this shot: show the piece on that body. */
               <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(255,255,255,0.14),transparent_70%)]">
@@ -256,10 +298,32 @@ export function ReelStudio() {
             ) : image ? (
               <Photo src={image} alt="" />
             ) : (
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs text-muted">
-                <Shirt className="size-8" strokeWidth={1.5} aria-hidden />
-                Add the outfits for your reel
-              </span>
+              /* Nothing lined up yet: the reel's shape, lit, rather than an empty black frame. */
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[radial-gradient(ellipse_at_50%_12%,rgba(124,92,255,0.38)_0%,rgba(10,11,22,0.9)_70%)] px-6 text-center transition-colors hover:bg-accent/5"
+              >
+                <span aria-hidden className="flex items-center gap-2">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        "flex aspect-[9/16] items-center justify-center rounded-lg border border-dashed transition-transform",
+                        i === 1 ? "w-14 border-accent-bright/70 bg-accent/20 shadow-lg shadow-accent/20" : "w-11 border-white/20 bg-white/[0.04] opacity-70"
+                      )}
+                    >
+                      {i === 1 ? <Plus className="size-5 text-accent-bright" strokeWidth={2} /> : <Shirt className="size-4 text-white/40" strokeWidth={1.5} />}
+                    </span>
+                  ))}
+                </span>
+                <span className="space-y-1">
+                  <span className="block text-sm font-medium text-white">Add the outfits for your reel</span>
+                  <span className="block text-[11px] text-muted">
+                    {minShots}–{maxShots} photos · {brand.name} opens and closes the film
+                  </span>
+                </span>
+              </button>
             )}
             {!open && shot && (
               <span className="absolute left-2 top-2 flex items-center gap-1.5">
@@ -268,6 +332,15 @@ export function ReelStudio() {
                 </span>
                 {shotPreset && <span className="truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] text-white/85 backdrop-blur">{shotPreset.badge}</span>}
               </span>
+            )}
+            {open && (open.status === "RENDERING" || open.status === "COMPOSING") && <RenderingOverlay reel={open} />}
+            {open?.status === "FAILED" && (
+              <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 p-5 text-center">
+                <AlertTriangle className="size-6 text-amber-300" aria-hidden />
+                <p className="text-xs font-medium text-white">This reel didn&apos;t work</p>
+                <p className="line-clamp-4 text-[11px] text-muted">{open.error}</p>
+                {open.refunded && <p className="text-[11px] text-green">{open.credits} credits were returned.</p>}
+              </div>
             )}
           </div>
 
@@ -346,26 +419,38 @@ export function ReelStudio() {
               </button>
             </div>
           )}
+          {open && (
+            <button type="button" onClick={() => setOpenId(null)} className="flex items-center gap-1.5 text-xs text-accent-bright hover:underline">
+              <RotateCcw className="size-3.5" aria-hidden /> Set up a new reel
+            </button>
+          )}
         </div>
 
-        {/* ── Set-up ── */}
-        <div className="space-y-6 lg:col-span-7">
+        {/* ── Set-up: printed on paper, so the dark preview beside it reads as the film ── */}
+        <div className="form-light space-y-6 rounded-(--radius-panel) p-4 sm:p-5 lg:col-span-7">
           <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-3 text-xs">
               <Label>1. Outfits</Label>
-              {!enough && <span className="text-muted">at least {minShots}</span>}
+              {!enough ? <span className="text-muted">at least {minShots}</span> : shot && <span className="truncate text-muted">{shotLabel(shot)}</span>}
             </div>
+
+            {/* Uploading is the way in: photos are all this needs, catalog or no catalog. */}
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={shots.length >= maxShots}
-              className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-white/20 px-4 py-4 text-left transition-colors hover:border-accent-bright hover:bg-accent/5 disabled:opacity-40"
+              className={cn(
+                "flex w-full items-center gap-3 rounded-2xl border border-dashed px-4 py-4 text-left transition-colors disabled:opacity-40",
+                shots.length > 0 ? "border-accent bg-accent/10" : "border-[rgba(11,11,30,0.18)] bg-[rgba(11,11,30,0.035)] hover:border-accent hover:bg-accent/5"
+              )}
             >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">
-                <Plus className="size-5 text-accent-bright" strokeWidth={1.75} aria-hidden />
+              <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[rgba(11,11,30,0.06)]">
+                {image ? <Photo src={image} alt="" /> : <Upload className="size-5 text-accent-bright" strokeWidth={1.75} aria-hidden />}
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-medium text-white">Upload outfit photos</span>
+                <span className="block truncate text-sm font-medium text-white">
+                  {shots.length === 0 ? "Upload outfit photos" : shots.length >= maxShots ? `${maxShots} outfits added` : "Add another outfit"}
+                </span>
                 <span className="block text-[11px] text-muted">One person, full outfit in frame, good light</span>
               </span>
             </button>
@@ -386,10 +471,10 @@ export function ReelStudio() {
                         onClick={() => add({ key: `p-${p.id}`, product: p })}
                         className={cn(
                           "flex shrink-0 items-center gap-2.5 rounded-xl border p-1.5 pr-3 text-left transition-colors disabled:opacity-40",
-                          added ? "border-accent bg-accent/15" : "border-white/[0.06] bg-white/[0.02] hover:border-white/15"
+                          added ? "border-accent bg-accent/10" : "border-[rgba(11,11,30,0.1)] bg-[rgba(11,11,30,0.03)] hover:border-[rgba(11,11,30,0.22)]"
                         )}
                       >
-                        <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black/40">
+                        <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#15162a]">
                           {p.images?.[0] ? <Photo src={p.images[0]} alt={p.title} /> : <Shirt className="size-4 text-muted" aria-hidden />}
                         </span>
                         <span className="min-w-0 max-w-[130px]">
@@ -414,12 +499,12 @@ export function ReelStudio() {
                     role="radio"
                     aria-checked={shot.avatarId === null}
                     onClick={() => patch({ avatarId: null })}
-                    className={cn("group overflow-hidden rounded-2xl transition-all", shot.avatarId === null ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
+                    className={cn("tile-frame group overflow-hidden rounded-2xl transition-all", shot.avatarId === null ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
                   >
-                    <span className="relative flex aspect-[3/4] items-center justify-center bg-white/[0.03]">
+                    <span className="tile-stage relative flex aspect-[3/4] items-center justify-center bg-white/[0.03]">
                       {image ? <Photo src={image} alt="" /> : <Shirt className="size-5 text-white/25" aria-hidden />}
                     </span>
-                    <span className={cn("block truncate px-2 py-1.5 text-[11px] font-medium", shot.avatarId === null ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>Photo as is</span>
+                    <span className={cn("tile-label block truncate px-2 py-1.5 text-[11px] font-medium", shot.avatarId === null ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>Photo as is</span>
                   </button>
                   {AVATARS.map((a) => (
                     <AvatarTile key={a.id} avatar={a} pose={shot.pose} selected={shot.avatarId === a.id} onSelect={() => patch({ avatarId: a.id })} />
@@ -441,12 +526,12 @@ export function ReelStudio() {
                           aria-checked={on}
                           aria-label={p.label}
                           onClick={() => patch({ pose: p.id })}
-                          className={cn("w-[88px] shrink-0 overflow-hidden rounded-2xl transition-all", on ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
+                          className={cn("tile-frame w-[88px] shrink-0 overflow-hidden rounded-2xl transition-all", on ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
                         >
-                          <span className="relative flex aspect-[3/4] items-end justify-center bg-white/[0.03]">
+                          <span className="tile-stage relative flex aspect-[3/4] items-end justify-center bg-white/[0.03]">
                             <AvatarFigure build={avatar.build} skin={avatar.skin} pose={p.id} className="h-[86%] w-auto" />
                           </span>
-                          <span className={cn("block truncate px-2 py-1.5 text-[10px] font-medium", on ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle")}>{p.label}</span>
+                          <span className={cn("tile-label block truncate px-2 py-1.5 text-[10px] font-medium", on ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle")}>{p.label}</span>
                         </button>
                       );
                     })}
@@ -472,12 +557,12 @@ export function ReelStudio() {
                         role="radio"
                         aria-checked={shot.presetId === null}
                         onClick={() => patch({ presetId: null })}
-                        className={cn("group overflow-hidden rounded-2xl text-left transition-all", shot.presetId === null ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
+                        className={cn("tile-frame group overflow-hidden rounded-2xl text-left transition-all", shot.presetId === null ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
                       >
                         <span className="relative flex aspect-[4/3] items-center justify-center bg-[radial-gradient(ellipse_at_50%_20%,#3a3350_0%,#14151f_72%)]">
                           <Sparkles className="size-5 text-white/70" aria-hidden />
                         </span>
-                        <span className={cn("block px-3 py-2.5 text-xs font-medium", shot.presetId === null ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>Style picks</span>
+                        <span className={cn("tile-label block px-3 py-2.5 text-xs font-medium", shot.presetId === null ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>Style picks</span>
                       </button>
                       {presetList.map((p) => (
                         <MotionTile key={p.id} preset={p} selected={shot.presetId === p.id} onSelect={() => patch({ presetId: p.id })} />
@@ -505,6 +590,9 @@ export function ReelStudio() {
                 <div role="radiogroup" aria-label="Reel style" className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                   {styleList.map((s) => {
                     const on = style?.id === s.id;
+                    // The style's own card colour is the near-black used on the video's end cards, so the
+                    // tile is lit by the move the style leads with instead — the same stage as a motion look.
+                    const lead = presetList.find((p) => s.presetIds.includes(p.id));
                     return (
                       <button
                         key={s.id}
@@ -513,14 +601,22 @@ export function ReelStudio() {
                         aria-checked={on}
                         onClick={() => setStyleId(s.id)}
                         title={s.description}
-                        className={cn("overflow-hidden rounded-2xl text-left transition-all", on ? "ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
+                        className={cn("tile-frame group overflow-hidden rounded-2xl text-left transition-all", on ? "stage-on ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25")}
                       >
-                        <span className="flex h-14 items-center justify-center" style={{ background: `#${s.cardColor.replace(/^0x/, "")}` }}>
-                          <Clapperboard className="size-5 text-white/70" strokeWidth={1.5} aria-hidden />
-                        </span>
-                        <span className={cn("block px-3 py-2", on ? "bg-accent/20" : "bg-white/[0.03]")}>
-                          <span className="block truncate text-xs font-medium text-white">{s.name}</span>
-                          <span className="block truncate text-[10px] text-muted">{s.badge}</span>
+                        {lead ? (
+                          <MotionStage preset={lead} className="aspect-[4/3]" />
+                        ) : (
+                          <span className="flex aspect-[4/3] items-center justify-center bg-[radial-gradient(ellipse_at_50%_18%,#3a3350_0%,#14151f_72%)]">
+                            <Clapperboard className="size-5 text-white/70" strokeWidth={1.5} aria-hidden />
+                          </span>
+                        )}
+                        <span className={cn("tile-label flex items-center gap-2 px-3 py-2 transition-colors", on ? "bg-accent/20" : "bg-white/[0.03]")}>
+                          {/* The colour the brand cards are printed on, kept as a swatch. */}
+                          <span aria-hidden className="size-2.5 shrink-0 rounded-full ring-1 ring-[rgba(11,11,30,0.25)]" style={{ background: `#${s.cardColor.replace(/^0x/, "")}` }} />
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs font-medium text-white">{s.name}</span>
+                            <span className="block truncate text-[10px] text-muted">{s.badge}</span>
+                          </span>
                         </span>
                       </button>
                     );
@@ -543,6 +639,20 @@ export function ReelStudio() {
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="reel-prompt">{shot ? step(6) : 4}. Creative direction (optional)</Label>
+            <textarea
+              id="reel-prompt"
+              rows={2}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              maxLength={300}
+              placeholder="e.g. Golden-hour light on a palace terrace, a soft breeze lifting the dupatta"
+              className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-muted/70 hover:border-white/20 focus:border-accent-bright/70 focus:ring-4 focus:ring-accent/20"
+            />
+            <p className="text-right text-[10px] text-dim tabular-nums">{prompt.length}/300</p>
+          </div>
+
           <ActionButton onClick={start} loading={starting} disabled={!canRun} className="h-12 w-full">
             {!starting && <Sparkles className="size-4" aria-hidden />}
             {starting ? "Starting your reel…" : `Make the reel · ${cost} credits`}
@@ -556,6 +666,25 @@ export function ReelStudio() {
       </div>
 
       <ReelGallery reels={all} loading={reels.status === "loading"} error={reels.status === "error" ? reels.error : ""} onRetry={reels.reload} openId={openId} onOpen={setOpenId} onDelete={remove} />
+    </div>
+  );
+}
+
+/** A reel in progress, over its own first shot: what it is doing and how long it has been going. */
+function RenderingOverlay({ reel }: { reel: BrandReel }) {
+  const seconds = useElapsed(reel.createdAt);
+  const pct = reel.status === "COMPOSING" ? 100 : reel.shotsTotal ? Math.round((reel.shotsReady / reel.shotsTotal) * 100) : 0;
+  return (
+    <div role="status" className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 p-5 text-center">
+      <span className="relative flex size-12 items-center justify-center">
+        <span className="absolute inset-0 animate-spin rounded-full border-2 border-accent-bright/30 border-t-accent-bright" />
+        <Clapperboard className="size-5 text-white" aria-hidden />
+      </span>
+      <p className="text-xs font-medium text-white">{stage(reel, seconds)}</p>
+      <p className="font-mono text-[11px] tabular-nums text-muted">{clock(seconds)}</p>
+      <span aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
+        <span className="block h-full bg-accent-bright transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      </span>
     </div>
   );
 }
@@ -611,7 +740,7 @@ function ReelGallery({
             const pct = r.shotsTotal ? Math.round((r.shotsReady / r.shotsTotal) * 100) : 0;
             return (
               <article key={r.id} className={cn("group relative overflow-hidden rounded-xl bg-black/50 ring-1 transition", r.id === openId ? "ring-2 ring-accent-bright" : "ring-white/10 hover:ring-white/25")}>
-                <button type="button" onClick={() => onOpen(r.id)} aria-label={`Open ${r.title}`} className="relative block aspect-[9/16] w-full">
+                <button type="button" onClick={() => onOpen(r.id)} aria-label={`Open ${r.title}`} className={cn("relative block w-full", aspectClass(r.aspectRatio))}>
                   {r.status === "READY" && r.videoUrl ? (
                     <video src={`${assetUrl(r.videoUrl)}#t=0.5`} muted playsInline preload="metadata" className="size-full object-cover" />
                   ) : r.shots[0] ? (

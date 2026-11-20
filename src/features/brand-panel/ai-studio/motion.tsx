@@ -116,7 +116,7 @@ export function MotionTile({ preset, selected, onSelect }: { preset: MotionPrese
       onClick={onSelect}
       title={preset.description}
       className={cn(
-        "group relative overflow-hidden rounded-2xl text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright",
+        "tile-frame group relative overflow-hidden rounded-2xl text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright",
         selected ? "stage-on ring-2 ring-accent-bright" : "ring-1 ring-white/10 hover:ring-white/25"
       )}
     >
@@ -127,7 +127,7 @@ export function MotionTile({ preset, selected, onSelect }: { preset: MotionPrese
           <CheckCircle2 className="size-3.5" aria-hidden />
         </span>
       )}
-      <span className={cn("block px-3 py-2.5 text-xs font-medium transition-colors", selected ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>{preset.name}</span>
+      <span className={cn("tile-label block px-3 py-2.5 text-xs font-medium transition-colors", selected ? "bg-accent/20 text-white" : "bg-white/[0.03] text-subtle group-hover:text-white")}>{preset.name}</span>
     </button>
   );
 }
