@@ -280,7 +280,8 @@ export type BrandReel = {
   finishedAt: string | null;
 };
 
-export type ReelShotInput = { garmentId?: string; customImageUrl?: string; label?: string; caption?: string };
+/** `presetId` pins the move for this one shot; left out, the reel style picks it. */
+export type ReelShotInput = { garmentId?: string; customImageUrl?: string; label?: string; caption?: string; presetId?: string };
 export type ReelInput = { title?: string; styleId: string; shots: ReelShotInput[]; prompt?: string };
 
 export type BrandVideo = {

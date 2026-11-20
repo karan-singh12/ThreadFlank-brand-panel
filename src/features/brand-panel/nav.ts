@@ -1,4 +1,4 @@
-import { Award, BarChart3, Layers, LayoutDashboard, Rocket, Video, type LucideIcon } from "lucide-react";
+import { Award, BarChart3, BookmarkCheck, Layers, LayoutDashboard, Rocket, Video, type LucideIcon } from "lucide-react";
 
 export type BrandNavItem = { id: string; label: string; title: string; href: string; icon: LucideIcon };
 
@@ -17,6 +17,7 @@ export const BRAND_NAV: readonly BrandNavItem[] = [
 /** Sections that don't get a tab. The profile dropdown lists these. */
 export const BRAND_MENU: readonly BrandNavItem[] = [
   { id: "insights", label: "Insights", title: "Insights", href: "/insights", icon: BarChart3 },
+  { id: "saved-copy", label: "Saved copy", title: "Saved copy", href: "/saved-copy", icon: BookmarkCheck },
 ];
 
 export const isNavActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);

@@ -59,7 +59,7 @@ export function ContentLibrary() {
   if (items.status === "loading") return <Skeleton className="h-56 w-full" />;
   if (items.status === "error") return <ErrorState message={items.error} onRetry={items.reload} />;
   if (list.length === 0) {
-    return <EmptyState icon={BookmarkPlus} title="Nothing saved yet" description="Write copy in the Write copy tab and press Save on the options you like. They are kept here for next time." />;
+    return <EmptyState icon={BookmarkPlus} title="Nothing saved yet" description="Write copy in AI Studio and press Save on the options you like. They are kept here for next time." />;
   }
 
   return (

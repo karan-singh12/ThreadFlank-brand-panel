@@ -352,6 +352,92 @@ body {
   color: #0b0b1e;
 }
 
+/* ── Paper form: a light set-up column inside a dark panel ────────────────
+   The AI Studio's preview stays dark because it is a video; the form beside it is printed on
+   paper. The ink tokens are re-coloured here rather than at every call site, since the controls
+   inside are shared with dark screens. Picture tiles keep a dark stage (photos and model figures
+   need it) with a light rim and a light label strip: `.tile-frame`, `.tile-stage`, `.tile-label`
+   are the hooks for that, and they do nothing outside this card. */
+.form-light {
+  background-image: linear-gradient(180deg, #ffffff 0%, #edecf7 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(11, 11, 30, 0.08),
+    0 24px 60px -40px rgba(0, 0, 0, 0.9);
+  color: #0b0b1e;
+}
+
+/* Ink. `text-white` is the strongest text on dark, so here it is the darkest. */
+.form-light .text-white,
+.form-light .hover\:text-white:hover,
+.form-light .group:hover .group-hover\:text-white {
+  color: #0b0b1e;
+}
+.form-light .text-subtle {
+  color: #44425c;
+}
+.form-light .text-muted,
+.form-light label {
+  color: #5f5d78;
+}
+.form-light .text-dim {
+  color: #8b89a0;
+}
+.form-light .text-accent-bright {
+  color: #5433cf;
+}
+
+/* Text fields, the catalog search among them (a glass pill on dark). White on near-white paper
+   reads as nothing, so a field is a recessed grey well instead, and comes up to white when it
+   has focus — the page's own way of saying "this one is yours to type in". */
+.form-light :is(input, textarea) {
+  background-color: #e6e5f0;
+  background-image: none;
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 2px rgba(11, 11, 30, 0.07),
+    inset 0 0 0 1px rgba(11, 11, 30, 0.06);
+  color: #0b0b1e;
+}
+.form-light :is(input, textarea):hover {
+  background-color: #e0dfec;
+  border-color: transparent;
+}
+.form-light :is(input, textarea):focus {
+  background-color: #ffffff;
+  border-color: rgba(84, 51, 207, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(84, 51, 207, 0.35);
+}
+.form-light :is(input, textarea)::placeholder {
+  color: rgba(11, 11, 30, 0.42);
+}
+
+.form-light .tile-frame {
+  --tw-ring-color: rgba(11, 11, 30, 0.14);
+}
+.form-light .tile-frame:hover {
+  --tw-ring-color: rgba(11, 11, 30, 0.3);
+}
+.form-light .tile-stage {
+  background-color: #15162a;
+}
+.form-light .tile-label {
+  background-color: rgba(11, 11, 30, 0.05);
+  color: #44425c;
+}
+.form-light [aria-checked="true"] .tile-label {
+  background-color: rgba(102, 69, 235, 0.16);
+  color: #2b1d80;
+}
+
+/* Loading blocks read as ink on paper, not light on dark. */
+.form-light .shimmer {
+  background: rgba(11, 11, 30, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(11, 11, 30, 0.07);
+}
+.form-light .shimmer::after {
+  background: linear-gradient(90deg, transparent, rgba(102, 69, 235, 0.12), transparent);
+}
+
 /* Your chat bubbles: one violet-to-blue gradient across the screen (as on the landing page's glow),
    so bubbles shift colour as they scroll, like Instagram's. iOS ignores `fixed` and shows it per bubble. */
 .bubble-mine {
